@@ -14,6 +14,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://amin-rice-trading-backe
 const fetchJson = async (url: string, options?: RequestInit) => {
   const fullUrl = `${API_URL}${url}`;
   console.log(`Fetching: ${fullUrl}`);
+  
+  // Set global loading state
+  dataStore.setLoading(true);
+
   try {
     const res = await fetch(fullUrl, {
       ...options,
@@ -31,6 +35,9 @@ const fetchJson = async (url: string, options?: RequestInit) => {
   } catch (err) {
     console.error(`Fetch error for ${fullUrl}:`, err);
     throw err;
+  } finally {
+    // Unset global loading state
+    dataStore.setLoading(false);
   }
 };
 
@@ -45,6 +52,25 @@ const mapId = (item: any): any => {
 };
 
 class DataStore {
+  private isLoading = false;
+  private listeners: ((loading: boolean) => void)[] = [];
+
+  subscribe(listener: (loading: boolean) => void) {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter(l => l !== listener);
+    };
+  }
+
+  setLoading(loading: boolean) {
+    // Small delay to prevent flashing for very fast requests
+    this.isLoading = loading;
+    this.listeners.forEach(l => l(loading));
+  }
+
+  getLoading() {
+    return this.isLoading;
+  }
   // Parties
   async getParties(): Promise<Party[]> {
     const data = await fetchJson('/parties');

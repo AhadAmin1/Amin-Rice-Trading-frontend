@@ -24,7 +24,11 @@ interface DashboardCardProps {
   color: string;
 }
 
+import { Skeleton } from '@/components/ui/skeleton';
+
 function DashboardCard({ title, value, subtitle, icon: Icon, onClick, color }: DashboardCardProps) {
+  const isLoading = value === "loading" || !value;
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-l-4"
@@ -41,9 +45,18 @@ function DashboardCard({ title, value, subtitle, icon: Icon, onClick, color }: D
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold text-slate-900">{value}</div>
-        {subtitle && (
-          <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+        {isLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ) : (
+          <>
+            <div className="text-2xl font-bold text-slate-900">{value}</div>
+            {subtitle && (
+              <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
@@ -60,8 +73,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     totalProfit: 0,
   });
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    dataStore.getDashboardSummary().then(setSummary);
+    setLoading(true);
+    dataStore.getDashboardSummary()
+      .then(setSummary)
+      .finally(() => setLoading(false));
   }, []);
 
    const formatCurrency = (amount: number) => {
@@ -93,8 +111,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <DashboardCard
           title="Total Stock"
-          value={`${summary.totalStockKatte} Katte`}
-          subtitle={formatWeight(summary.totalStockWeight)}
+          value={loading ? "loading" : `${summary.totalStockKatte} Katte`}
+          subtitle={loading ? undefined : formatWeight(summary.totalStockWeight)}
           icon={Package}
           onClick={() => onNavigate('stock')}
           color="#f59e0b"
@@ -102,8 +120,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         
         <DashboardCard
           title="Cash Balance"
-          value={formatCurrency(summary.cashBalance)}
-          subtitle="Available cash in hand"
+          value={loading ? "loading" : formatCurrency(summary.cashBalance)}
+          subtitle={loading ? undefined : "Available cash in hand"}
           icon={Wallet}
           onClick={() => onNavigate('cashbook')}
           color="#10b981"
@@ -111,8 +129,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         
         <DashboardCard
           title="Total Receivable"
-          value={formatCurrency(summary.totalReceivable)}
-          subtitle="From Buyers"
+          value={loading ? "loading" : formatCurrency(summary.totalReceivable)}
+          subtitle={loading ? undefined : "From Buyers"}
           icon={ArrowDownLeft}
           onClick={() => onNavigate('ledger')}
           color="#3b82f6"
@@ -120,8 +138,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         
         <DashboardCard
           title="Total Payable"
-          value={formatCurrency(summary.totalPayable)}
-          subtitle="To Millers"
+          value={loading ? "loading" : formatCurrency(summary.totalPayable)}
+          subtitle={loading ? undefined : "To Millers"}
           icon={ArrowUpRight}
           onClick={() => onNavigate('ledger')}
           color="#ef4444"
@@ -129,8 +147,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         
         <DashboardCard
           title="Total Profit"
-          value={formatCurrency(summary.totalProfit)}
-          subtitle="Amin's Net Profit"
+          value={loading ? "loading" : formatCurrency(summary.totalProfit)}
+          subtitle={loading ? undefined : "Amin's Net Profit"}
           icon={TrendingUp}
           onClick={() => onNavigate('profit')}
           color="#8b5cf6"

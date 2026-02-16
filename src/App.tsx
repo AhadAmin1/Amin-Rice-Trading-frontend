@@ -8,11 +8,20 @@ import { LedgerSystem, PartyLedger } from '@/components/ledger/LedgerSystem';
 import { ProfitModule } from '@/components/profit/ProfitModule';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-// import { dataStore } from '@/store/dataStore';
+import { dataStore } from '@/store/dataStore';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import type { ViewType } from '@/types';
 import './App.css';
 
 function App() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = dataStore.subscribe((loading) => {
+      setIsLoading(loading);
+    });
+    return () => unsubscribe();
+  }, []);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [selectedPartyId, setSelectedPartyId] = useState<string | undefined>(undefined);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -74,6 +83,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {isLoading && <LoadingScreen />}
       {/* Sidebar */}
       <Sidebar 
         currentView={currentView} 
