@@ -15,12 +15,21 @@ import './App.css';
 
 function App() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
+    // Initial load simulation
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1500);
+
     const unsubscribe = dataStore.subscribe((loading) => {
       setIsLoading(loading);
     });
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, []);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [selectedPartyId, setSelectedPartyId] = useState<string | undefined>(undefined);
@@ -83,7 +92,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {isLoading && <LoadingScreen />}
+      {(isInitializing || isLoading) && <LoadingScreen />}
       {/* Sidebar */}
       <Sidebar 
         currentView={currentView} 

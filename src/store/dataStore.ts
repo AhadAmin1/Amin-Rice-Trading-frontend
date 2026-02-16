@@ -52,7 +52,7 @@ const mapId = (item: any): any => {
 };
 
 class DataStore {
-  private isLoading = false;
+  private activeRequests = 0;
   private listeners: ((loading: boolean) => void)[] = [];
 
   subscribe(listener: (loading: boolean) => void) {
@@ -63,13 +63,18 @@ class DataStore {
   }
 
   setLoading(loading: boolean) {
-    // Small delay to prevent flashing for very fast requests
-    this.isLoading = loading;
-    this.listeners.forEach(l => l(loading));
+    if (loading) {
+      this.activeRequests++;
+    } else {
+      this.activeRequests = Math.max(0, this.activeRequests - 1);
+    }
+    
+    const isGlobalLoading = this.activeRequests > 0;
+    this.listeners.forEach(l => l(isGlobalLoading));
   }
 
   getLoading() {
-    return this.isLoading;
+    return this.activeRequests > 0;
   }
   // Parties
   async getParties(): Promise<Party[]> {
