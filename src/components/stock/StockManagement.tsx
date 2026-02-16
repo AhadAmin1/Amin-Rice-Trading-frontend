@@ -268,6 +268,7 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
     katte: '',
     weightPerKatta: '',
     purchaseRate: '',
+    bhardana: '',
     rateType: 'per_kg' as 'per_kg' | 'per_katta',
   });
 
@@ -297,7 +298,8 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
       purchaseRate,
       rateType: formData.rateType,
       totalAmount,
-    });
+      bhardana: Number(formData.bhardana) || 0,
+    } as any);
 
     onSuccess();
   };
@@ -413,6 +415,10 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
             <span className="font-medium text-right">
               {(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(0)} kg
             </span>
+             <span className="text-slate-600">Bhardana:</span>
+            <span className="font-medium text-right">
+              {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.bhardana) || 0)}
+            </span>
             <span className="text-slate-600">Total Amount:</span>
             <span className="font-medium text-right">
  {new Intl.NumberFormat('en-PK', {
@@ -420,9 +426,9 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
   currency: 'PKR',
   maximumFractionDigits: 0,
 }).format(
-  formData.rateType === 'per_kg'
+  (formData.rateType === 'per_kg'
     ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
-    : Number(formData.katte) * Number(formData.purchaseRate)
+    : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.bhardana) || 0)
 )}
 </span>
 

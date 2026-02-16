@@ -14,6 +14,7 @@ import type { Party, LedgerEntry, ViewType } from '@/types';
 import { Pencil, Trash2, Share2 as ShareIcon } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatDistanceToNow } from 'date-fns';
 
 interface LedgerSystemProps {
   onNavigate: (view: ViewType, partyId?: string) => void;
@@ -593,6 +594,7 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
               <TableHead className="text-right">Katte</TableHead>
               <TableHead className="text-right">Weight</TableHead>
               <TableHead className="text-right">Rate</TableHead>
+              <TableHead className="text-right">Bhardana</TableHead>
               <TableHead className="text-right">
                 {party.type === 'Buyer' ? 'Debit (Received)' : 'Debit (Purchase)'}
               </TableHead>
@@ -605,15 +607,22 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
           <TableBody>
             {entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-slate-500">
+                <TableCell colSpan={10} className="text-center py-8 text-slate-500">
                   <BookOpen className="h-12 w-12 mx-auto mb-3 text-slate-300" />
                   <p>No ledger entries yet</p>
                 </TableCell>
               </TableRow>
             ) : (
-              entries.map((entry) => (
+              entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry) => (
                 <TableRow key={entry.id} className="hover:bg-slate-50">
-                  <TableCell>{entry.date}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{entry.date}</span>
+                      <span className="text-xs text-slate-400">
+                        {formatDistanceToNow(new Date(entry.date), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell className="font-medium">{entry.particulars}</TableCell>
                   <TableCell>
                     {entry.billNo ? (
@@ -628,6 +637,9 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     {entry.rate ? `RS ${entry.rate}` : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {entry.bhardana ? formatCurrency(entry.bhardana) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     {entry.debit > 0 ? formatCurrency(entry.debit) : '-'}

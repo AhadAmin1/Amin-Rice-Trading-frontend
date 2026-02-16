@@ -18,6 +18,7 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
     stockId: "",
     katte: "",
     rate: "",
+    bhardana: "",
     rateType: "per_kg" as 'per_kg' | 'per_katta',
     billNo: "",
   });
@@ -28,8 +29,12 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
   const selectedStock = stocks.find(s => s.id === formData.stockId);
   const katte = Number(formData.katte) || 0;
   const rate = Number(formData.rate) || 0;
+  const bhardana = Number(formData.bhardana) || 0;
   const totalWeight = selectedStock ? katte * selectedStock.weightPerKatta : 0;
-  const totalAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
+  // Total Amount = (Rate Amount) + Bhardana
+  // Bhardana is added to the total receivable from Buyer
+  const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
+  const totalAmount = rawAmount + bhardana;
   
   const purchaseCost = selectedStock 
     ? totalWeight * (selectedStock.totalAmount / selectedStock.totalWeight)
@@ -84,9 +89,13 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
       const weightPerKatta = selectedStock.weightPerKatta;
       const totalWeight = katte * weightPerKatta;
       
-      const totalAmount = formData.rateType === 'per_kg' 
+      const bhardana = Number(formData.bhardana) || 0;
+      
+      const rawAmount = formData.rateType === 'per_kg' 
         ? totalWeight * rate 
         : katte * rate;
+      
+      const totalAmount = rawAmount + bhardana;
         
       
       // Cost per kg based on total purchase amount
@@ -108,11 +117,12 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
         weightPerKatta,
         weight: totalWeight, // Using weight field now
         rate,
+        bhardana,
         rateType: formData.rateType,
         totalAmount,
         purchaseCost: calculatedPurchaseCost,
         profit
-      });
+      } as any);
 
       onSuccess(bill);
     } catch (err: any) {
@@ -187,6 +197,10 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
         <Input type="number" value={formData.rate} onChange={e => setFormData({ ...formData, rate: e.target.value })} required />
       </div>
       <div>
+        <Label>Bhardana (Optional)</Label>
+        <Input type="number" value={formData.bhardana} onChange={e => setFormData({ ...formData, bhardana: e.target.value })} placeholder="Packaging cost" />
+      </div>
+      <div>
         <Label>Rate Type</Label>
         <Select 
             value={formData.rateType} 
@@ -213,6 +227,9 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
             <span>Total Weight:</span>
             <span className="text-right font-medium">{totalWeight.toFixed(2)} kg</span>
             
+            <span>Bhardana (Packaging):</span>
+            <span className="text-right font-medium">{formatCurrency(bhardana)}</span>
+
             <span>Total Amount:</span>
             <span className="text-right font-bold text-amber-700">{formatCurrency(totalAmount)}</span>
             
