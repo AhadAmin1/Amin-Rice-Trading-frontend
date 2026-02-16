@@ -37,18 +37,22 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     katte: String(stock.katte),
     weightPerKatta: String(stock.weightPerKatta),
     purchaseRate: String(stock.purchaseRate),
+    bhardana: String(stock.bhardana || 0),
     rateType: stock.rateType as "per_kg" | "per_katta",
   });
 
   const katte = Number(formData.katte) || 0;
   const weightPerKatta = Number(formData.weightPerKatta) || 0;
   const purchaseRate = Number(formData.purchaseRate) || 0;
+  const bhardana = Number(formData.bhardana) || 0;
 
   const totalWeight = katte * weightPerKatta;
-  const totalAmount =
-    formData.rateType === "per_kg"
+  
+  const rawAmount = formData.rateType === "per_kg"
       ? totalWeight * purchaseRate
       : katte * purchaseRate;
+      
+  const totalAmount = rawAmount + bhardana;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,6 +70,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       weightPerKatta,
       totalWeight,
       purchaseRate,
+      bhardana,
       rateType: formData.rateType,
       totalAmount,
 
@@ -165,7 +170,22 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
           />
         </div>
 
-        <div className="space-y-1">
+         <div className="space-y-1">
+          <Label>Bhardana</Label>
+          <Input
+            type="number"
+            value={formData.bhardana}
+            onChange={e =>
+              setFormData({
+                ...formData,
+                bhardana: e.target.value,
+              })
+            }
+          />
+        </div>
+      </div>
+      
+      <div className="space-y-1">
           <Label>Rate Type</Label>
           <Select
             value={formData.rateType}
@@ -181,7 +201,6 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
               <SelectItem value="per_katta">Per Katta</SelectItem>
             </SelectContent>
           </Select>
-        </div>
       </div>
 
       {/* Preview */}
@@ -189,6 +208,16 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
         <div className="flex justify-between">
           <span>Total Weight</span>
           <b>{totalWeight.toFixed(0)} kg</b>
+        </div>
+         <div className="flex justify-between">
+          <span>Bhardana</span>
+          <b>
+            {new Intl.NumberFormat("en-PK", {
+              style: "currency",
+              currency: "PKR",
+              maximumFractionDigits: 0,
+            }).format(bhardana)}
+          </b>
         </div>
         <div className="flex justify-between">
           <span>Total Amount</span>

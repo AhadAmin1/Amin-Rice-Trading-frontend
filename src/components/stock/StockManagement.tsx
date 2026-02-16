@@ -390,6 +390,17 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="bhardana">Bhardana (Optional)</Label>
+          <Input
+            id="bhardana"
+            type="number"
+            min="0"
+            placeholder="Packaging cost"
+            value={formData.bhardana}
+            onChange={(e) => setFormData({ ...formData, bhardana: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="rateType">Rate Type *</Label>
           <Select 
             value={formData.rateType} 
