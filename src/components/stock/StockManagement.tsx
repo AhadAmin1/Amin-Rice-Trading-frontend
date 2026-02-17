@@ -141,6 +141,7 @@ const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
               <TableHead className="text-right">Katte</TableHead>
               <TableHead className="text-right">Weight (kg)</TableHead>
               <TableHead className="text-right">Rate</TableHead>
+              <TableHead className="text-right">Bhardana</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead className="text-center">Status</TableHead>
             </TableRow>
@@ -171,6 +172,9 @@ const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
         </TableCell>
         <TableCell className="text-right">
           {formatCurrency(item.purchaseRate)}/{item.rateType === 'per_kg' ? 'kg' : 'katte'}
+        </TableCell>
+        <TableCell className="text-right text-slate-600">
+          {formatCurrency(item.bhardana || 0)}
         </TableCell>
         <TableCell className="text-right font-medium">
           {formatCurrency(item.totalAmount)}
