@@ -130,6 +130,12 @@ export function BillView({ bill }: { bill: Bill }) {
               <span className="text-right font-medium">{bill.weight.toFixed(2)} kg</span>
               <span>Rate ({bill.rateType === 'per_kg' ? 'per kg' : 'per katta'}):</span>
               <span className="text-right font-medium">{formatCurrency(bill.rate)}</span>
+              {bill.bhardanaRate !== undefined && bill.bhardanaRate > 0 && (
+                <>
+                  <span>Bhardana (RS {bill.bhardanaRate} per katta):</span>
+                  <span className="text-right font-medium">{formatCurrency(bill.bhardana || 0)}</span>
+                </>
+              )}
             </div>
           </div>
 
