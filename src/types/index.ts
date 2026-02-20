@@ -1,6 +1,6 @@
 // Rice Trading Accounting System - Types
 
-export type PartyType = 'Miller' | 'Buyer';
+export type PartyType = 'Miller' | 'Buyer' | 'Expense';
 
 export interface Party {
   id: string;
@@ -53,6 +53,8 @@ export interface Bill {
   profit: number;
   bhardana?: number;
   bhardanaRate?: number;
+  paidAmount: number;
+  status: 'unpaid' | 'partial' | 'paid';
   createdAt: string;
 }
 
@@ -61,6 +63,7 @@ export interface CashEntry {
   date: string;
   description: string;
   billReference?: string;
+  billId?: string; // Link to specific bill
   debit: number;
   credit: number;
   balance: number;

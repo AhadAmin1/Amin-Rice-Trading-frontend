@@ -178,7 +178,7 @@ class DataStore {
     return mapId(data);
   }
 
-  async addCashEntry(entry: Omit<CashEntry, 'id' | 'balance' | 'createdAt'>): Promise<CashEntry> {
+  async addCashEntry(entry: Omit<CashEntry, 'id' | 'balance' | 'createdAt'> & { billId?: string }): Promise<CashEntry> {
     const data = await fetchJson('/cash', {
       method: 'POST',
       body: JSON.stringify(entry),

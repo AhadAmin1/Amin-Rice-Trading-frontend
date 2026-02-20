@@ -40,6 +40,7 @@ export function BillsTable({ bills, onView, onEdit, onDelete, onWhatsApp }: Prop
             <TableHead className="font-bold">Item</TableHead>
             <TableHead className="text-right font-bold">Katte</TableHead>
             <TableHead className="text-right font-bold">Total Amount</TableHead>
+            <TableHead className="text-center font-bold">Status</TableHead>
             <TableHead className="text-center font-bold">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -68,6 +69,15 @@ export function BillsTable({ bills, onView, onEdit, onDelete, onWhatsApp }: Prop
                 <div className="text-[10px] text-slate-400 font-medium">
                   {bill.weight.toFixed(0)} kg @ {formatCurrency(bill.rate)}
                 </div>
+              </TableCell>
+              <TableCell className="text-center">
+                {bill.status === 'paid' ? (
+                  <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>
+                ) : bill.status === 'partial' ? (
+                   <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] py-0 px-1">Partial</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-slate-400 text-[10px] py-0 px-1">Unpaid</Badge>
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex justify-center gap-1.5">

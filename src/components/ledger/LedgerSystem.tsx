@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { dataStore } from '@/store/dataStore';
-import type { Party, LedgerEntry, ViewType } from '@/types';
+import type { LedgerEntry, Party, ViewType, Bill } from '@/types';
 import { Pencil, Trash2, Share2 as ShareIcon, Phone, MapPin } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -45,6 +45,7 @@ export function LedgerSystem({ onNavigate }: LedgerSystemProps) {
 
   const millers = filteredParties.filter(p => p.type === 'Miller');
   const buyers = filteredParties.filter(p => p.type === 'Buyer');
+  const expenses = filteredParties.filter(p => p.type === 'Expense');
 
   const getPartyBalance = (partyId: string) => {
     return balances[partyId] || 0;
@@ -74,10 +75,11 @@ export function LedgerSystem({ onNavigate }: LedgerSystemProps) {
 
       {/* Tabs */}
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="all">All Parties</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+          <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="buyers">Buyers</TabsTrigger>
           <TabsTrigger value="millers">Millers</TabsTrigger>
+          <TabsTrigger value="expenses">Expenses</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -101,6 +103,15 @@ export function LedgerSystem({ onNavigate }: LedgerSystemProps) {
         <TabsContent value="millers" className="space-y-4">
           <PartiesGrid 
             parties={millers} 
+            onViewLedger={(partyId) => onNavigate('party-ledger', partyId)}
+            getBalance={getPartyBalance}
+            onRefresh={refreshParties}
+          />
+        </TabsContent>
+
+        <TabsContent value="expenses" className="space-y-4">
+          <PartiesGrid 
+            parties={expenses} 
             onViewLedger={(partyId) => onNavigate('party-ledger', partyId)}
             getBalance={getPartyBalance}
             onRefresh={refreshParties}
@@ -796,7 +807,23 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
     date: new Date().toISOString().split('T')[0],
     amount: '',
     description: '',
+    billId: '',
   });
+
+  const [bills, setBills] = useState<Bill[]>([]);
+
+  useEffect(() => {
+    const loadBills = async () => {
+      const allBills = await dataStore.getBills();
+      // Filter unpaid/partial bills for this party
+      const partyBills = allBills.filter(b => 
+        (b.buyerId === party.id || b.millerId === party.id) && 
+        b.status !== 'paid'
+      );
+      setBills(partyBills);
+    };
+    loadBills();
+  }, [party.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -804,9 +831,39 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
     const amount = Number(formData.amount);
     
     if (party.type === 'Buyer') {
-      await dataStore.receiveFromBuyer(party.id, amount, formData.date, formData.description);
+      await dataStore.addLedgerEntry({
+        partyId: party.id,
+        billId: formData.billId || undefined,
+        date: formData.date,
+        particulars: formData.description || `Payment Received${formData.billId ? ' for Bill' : ''}`,
+        debit: 0,
+        credit: amount,
+      });
+      // Also add cash entry
+      await dataStore.addCashEntry({
+        date: formData.date,
+        description: `Received from ${party.name} - ${formData.description}`,
+        debit: amount,
+        credit: 0,
+        billId: formData.billId || undefined
+      });
     } else {
-      await dataStore.payMiller(party.id, amount, formData.date, formData.description);
+      await dataStore.addLedgerEntry({
+        partyId: party.id,
+        billId: formData.billId || undefined,
+        date: formData.date,
+        particulars: formData.description || `Payment Made${formData.billId ? ' for Bill' : ''}`,
+        debit: 0,
+        credit: amount, // Credit reduces balance for Miller too
+      });
+      // Also add cash entry
+       await dataStore.addCashEntry({
+        date: formData.date,
+        description: `Payment to ${party.name} - ${formData.description}`,
+        debit: 0,
+        credit: amount,
+        billId: formData.billId || undefined
+      });
     }
 
     onSuccess();
@@ -824,6 +881,28 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
           required
         />
       </div>
+
+      {bills.length > 0 && (
+        <div className="space-y-2">
+          <Label htmlFor="bill">Link to Bill (Optional)</Label>
+          <Select 
+            value={formData.billId} 
+            onValueChange={(val) => setFormData({ ...formData, billId: val })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a bill" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Bill (General Payment)</SelectItem>
+              {bills.map(bill => (
+                <SelectItem key={bill.id} value={bill.id}>
+                  Bill #{bill.billNumber} ({bill.itemName}) - RS {bill.totalAmount - (bill.paidAmount || 0)} due
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="amount">Amount (RS) *</Label>
