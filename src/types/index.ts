@@ -29,6 +29,7 @@ export interface StockItem {
   remainingKatte: number;
   remainingWeight: number;
   bhardana?: number;
+  bhardanaRate?: number;
   createdAt: string;
 }
 
@@ -50,6 +51,8 @@ export interface Bill {
   totalAmount: number;
   purchaseCost: number;
   profit: number;
+  bhardana?: number;
+  bhardanaRate?: number;
   createdAt: string;
 }
 
@@ -77,6 +80,7 @@ export interface LedgerEntry {
   weight?: number;
   rate?: number;
   bhardana?: number;
+  bhardanaRate?: number;
   debit: number;
   credit: number;
   balance: number;

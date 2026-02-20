@@ -37,14 +37,15 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     katte: String(stock.katte),
     weightPerKatta: String(stock.weightPerKatta),
     purchaseRate: String(stock.purchaseRate),
-    bhardana: String(stock.bhardana || 0),
+    bhardanaRate: String(stock.bhardanaRate || 0),
     rateType: stock.rateType as "per_kg" | "per_katta",
   });
 
   const katte = Number(formData.katte) || 0;
   const weightPerKatta = Number(formData.weightPerKatta) || 0;
   const purchaseRate = Number(formData.purchaseRate) || 0;
-  const bhardana = Number(formData.bhardana) || 0;
+  const bhardanaRate = Number(formData.bhardanaRate) || 0;
+  const bhardana = katte * bhardanaRate;
 
   const totalWeight = katte * weightPerKatta;
   
@@ -70,6 +71,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       weightPerKatta,
       totalWeight,
       purchaseRate,
+      bhardanaRate,
       bhardana,
       rateType: formData.rateType,
       totalAmount,
@@ -171,14 +173,14 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
         </div>
 
          <div className="space-y-1">
-          <Label>Bhardana</Label>
+          <Label>Bhardana (per Katta)</Label>
           <Input
             type="number"
-            value={formData.bhardana}
+            value={formData.bhardanaRate}
             onChange={e =>
               setFormData({
                 ...formData,
-                bhardana: e.target.value,
+                bhardanaRate: e.target.value,
               })
             }
           />

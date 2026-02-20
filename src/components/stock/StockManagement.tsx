@@ -272,7 +272,7 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
     katte: '',
     weightPerKatta: '',
     purchaseRate: '',
-    bhardana: '',
+    bhardanaRate: '',
     rateType: 'per_kg' as 'per_kg' | 'per_katta',
   });
 
@@ -302,7 +302,8 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
       purchaseRate,
       rateType: formData.rateType,
       totalAmount,
-      bhardana: Number(formData.bhardana) || 0,
+      bhardanaRate: Number(formData.bhardanaRate) || 0,
+      bhardana: katte * (Number(formData.bhardanaRate) || 0),
     } as any);
 
     onSuccess();
@@ -394,14 +395,14 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="bhardana">Bhardana (Optional)</Label>
+          <Label htmlFor="bhardanaRate">Bhardana (per Katta)</Label>
           <Input
-            id="bhardana"
+            id="bhardanaRate"
             type="number"
             min="0"
-            placeholder="Packaging cost"
-            value={formData.bhardana}
-            onChange={(e) => setFormData({ ...formData, bhardana: e.target.value })}
+            placeholder="e.g., 20"
+            value={formData.bhardanaRate}
+            onChange={(e) => setFormData({ ...formData, bhardanaRate: e.target.value })}
           />
         </div>
         <div className="space-y-2">
@@ -432,7 +433,7 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
             </span>
              <span className="text-slate-600">Bhardana:</span>
             <span className="font-medium text-right">
-              {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.bhardana) || 0)}
+              {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
             </span>
             <span className="text-slate-600">Total Amount:</span>
             <span className="font-medium text-right">
@@ -443,7 +444,7 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
 }).format(
   (formData.rateType === 'per_kg'
     ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
-    : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.bhardana) || 0)
+    : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.katte) * (Number(formData.bhardanaRate) || 0))
 )}
 </span>
 

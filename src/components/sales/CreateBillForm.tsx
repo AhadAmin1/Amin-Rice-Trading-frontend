@@ -18,7 +18,7 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
     stockId: "",
     katte: "",
     rate: "",
-    bhardana: "",
+    bhardanaRate: "",
     rateType: "per_kg" as 'per_kg' | 'per_katta',
     billNo: "",
   });
@@ -29,7 +29,8 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
   const selectedStock = stocks.find(s => s.id === formData.stockId);
   const katte = Number(formData.katte) || 0;
   const rate = Number(formData.rate) || 0;
-  const bhardana = Number(formData.bhardana) || 0;
+  const bhardanaRate = Number(formData.bhardanaRate) || 0;
+  const bhardana = katte * bhardanaRate;
   const totalWeight = selectedStock ? katte * selectedStock.weightPerKatta : 0;
   // Total Amount = (Rate Amount) + Bhardana
   // Bhardana is added to the total receivable from Buyer
@@ -89,7 +90,8 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
       const weightPerKatta = selectedStock.weightPerKatta;
       const totalWeight = katte * weightPerKatta;
       
-      const bhardana = Number(formData.bhardana) || 0;
+      const bhardanaRate = Number(formData.bhardanaRate) || 0;
+      const bhardana = katte * bhardanaRate;
       
       const rawAmount = formData.rateType === 'per_kg' 
         ? totalWeight * rate 
@@ -117,6 +119,7 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
         weightPerKatta,
         weight: totalWeight, // Using weight field now
         rate,
+        bhardanaRate,
         bhardana,
         rateType: formData.rateType,
         totalAmount,
@@ -197,8 +200,8 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
         <Input type="number" value={formData.rate} onChange={e => setFormData({ ...formData, rate: e.target.value })} required />
       </div>
       <div>
-        <Label>Bhardana (Optional)</Label>
-        <Input type="number" value={formData.bhardana} onChange={e => setFormData({ ...formData, bhardana: e.target.value })} placeholder="Packaging cost" />
+        <Label>Bhardana (per Katta)</Label>
+        <Input type="number" value={formData.bhardanaRate} onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })} placeholder="e.g., 20" />
       </div>
       <div>
         <Label>Rate Type</Label>
