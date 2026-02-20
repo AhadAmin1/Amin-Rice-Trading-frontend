@@ -196,7 +196,14 @@ function BillsProfitTable({ profits }: { profits: ProfitEntry[] }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {profits.slice().reverse().map((profit) => (
+          {profits
+            .slice()
+            .sort((a, b) => {
+              const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+              if (dateDiff !== 0) return dateDiff;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })
+            .map((profit) => (
             <TableRow key={profit.id} className="hover:bg-slate-50">
               <TableCell>
                 <Badge variant="secondary">{profit.billNumber}</Badge>

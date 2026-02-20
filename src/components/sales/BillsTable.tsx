@@ -46,7 +46,13 @@ export function BillsTable({ bills, onView, onEdit, onDelete, onWhatsApp }: Prop
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bills.map((bill) => (
+          {bills
+            .sort((a, b) => {
+              const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+              if (dateDiff !== 0) return dateDiff;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            })
+            .map((bill) => (
             <TableRow key={bill.id} className="hover:bg-slate-50 transition-colors">
               <TableCell className="text-slate-600 font-medium">{bill.date}</TableCell>
               <TableCell>

@@ -155,7 +155,13 @@ const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
       </TableCell>
     </TableRow>
   ) : (
-    filteredStock.map((item) => (
+    filteredStock
+      .sort((a, b) => {
+        const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        if (dateDiff !== 0) return dateDiff;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .map((item) => (
       <TableRow key={item.id} className="hover:bg-slate-50">
         <TableCell>{item.date}</TableCell>
         <TableCell className="font-medium">{item.millerName}</TableCell>
