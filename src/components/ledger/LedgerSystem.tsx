@@ -205,9 +205,10 @@ function PartiesGrid({
           </div>
 
           <div>
-            <Label>Address</Label>
+            <Label>Address / Description</Label>
             <Input
               value={form.address}
+              placeholder="e.g. Home, Office, or Party Address"
               onChange={(e) => setForm({ ...form, address: e.target.value })}
             />
           </div>
@@ -240,11 +241,13 @@ function PartiesGrid({
             <div className="flex items-start justify-between">
   <div className="flex items-center gap-3">
     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-      party.type === 'Buyer' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
+      party.type === 'Buyer' ? 'bg-blue-100 text-blue-600' : 
+      party.type === 'Miller' ? 'bg-amber-100 text-amber-600' :
+      'bg-purple-100 text-purple-600'
     }`}>
-      {party.type === 'Buyer'
-        ? <User className="h-5 w-5" />
-        : <Building2 className="h-5 w-5" />
+      {party.type === 'Buyer' ? <User className="h-5 w-5" /> :
+       party.type === 'Miller' ? <Building2 className="h-5 w-5" /> :
+       <Wallet className="h-5 w-5" />
       }
     </div>
 
@@ -330,7 +333,7 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    type: 'Buyer' as 'Buyer' | 'Miller',
+    type: 'Buyer' as 'Buyer' | 'Miller' | 'Expense',
     phone: '+92 ',
     address: '',
   });
@@ -346,7 +349,7 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
     });
 
     setIsOpen(false);
-    setFormData({ name: '', type: 'Buyer', phone: '', address: '' });
+    setFormData({ name: '', type: 'Buyer', phone: '+92 ', address: '' });
     onSuccess();
   };
 
@@ -386,6 +389,7 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
               <SelectContent>
                 <SelectItem value="Buyer">Buyer (Customer)</SelectItem>
                 <SelectItem value="Miller">Miller (Supplier)</SelectItem>
+                <SelectItem value="Expense">Expense (Home/Office)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -405,10 +409,10 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
+            <Label htmlFor="address">Address / Description</Label>
             <Input
               id="address"
-              placeholder="Enter address"
+              placeholder="e.g. Home, Office, or Party Address"
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
@@ -560,13 +564,15 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
             <DialogTrigger asChild>
               <Button className="bg-amber-500 hover:bg-amber-600 text-white">
                 <Wallet className="h-4 w-4 mr-2" />
-                {party.type === 'Buyer' ? 'Receive Payment' : 'Make Payment'}
+                {party.type === 'Buyer' ? 'Receive Payment' : 
+                 party.type === 'Miller' ? 'Make Payment' : 'Add Expense Payment'}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>
-                  {party.type === 'Buyer' ? 'Receive from Buyer' : 'Pay to Miller'}
+                  {party.type === 'Buyer' ? 'Receive from Buyer' : 
+                   party.type === 'Miller' ? 'Pay to Miller' : 'Expense Payment'}
                 </DialogTitle>
               </DialogHeader>
               <PaymentForm 
@@ -594,7 +600,9 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
               <p className="text-sm text-slate-600">
                 {party.type === 'Buyer' 
                   ? currentBalance > 0 ? 'Amount Receivable' : 'Advance Received'
-                  : currentBalance > 0 ? 'Amount Payable' : 'Advance Paid'
+                  : party.type === 'Miller'
+                    ? currentBalance > 0 ? 'Amount Payable' : 'Advance Given'
+                    : 'Total Expense Balance'
                 }
               </p>
               <p className={`text-3xl font-bold mt-1 ${
