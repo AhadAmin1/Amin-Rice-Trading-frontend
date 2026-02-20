@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { dataStore } from '@/store/dataStore';
 import type { Party, LedgerEntry, ViewType } from '@/types';
-import { Pencil, Trash2, Share2 as ShareIcon } from 'lucide-react';
+import { Pencil, Trash2, Share2 as ShareIcon, Phone, MapPin } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDistanceToNow } from 'date-fns';
@@ -241,9 +241,23 @@ function PartiesGrid({
 
     <div>
       <h3 className="font-medium text-slate-900">{party.name}</h3>
-      <Badge variant="secondary" className="mt-1">
-        {party.type}
-      </Badge>
+      <div className="flex flex-col gap-1.5 mt-1">
+        <Badge variant="secondary" className="w-fit">
+          {party.type}
+        </Badge>
+        {party.phone && (
+          <div className="flex items-center gap-1.5 text-[13px] text-slate-500">
+            <Phone className="h-3.5 w-3.5" />
+            {party.phone}
+          </div>
+        )}
+        {party.address && (
+          <div className="flex items-center gap-1.5 text-[13px] text-slate-500">
+            <MapPin className="h-3.5 w-3.5" />
+            {party.address}
+          </div>
+        )}
+      </div>
     </div>
   </div>
 
