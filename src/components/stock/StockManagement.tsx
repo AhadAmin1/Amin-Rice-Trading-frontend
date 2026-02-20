@@ -371,8 +371,9 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
           <Input
             id="weightPerKatta"
             type="number"
-            min="1"
-            placeholder="e.g., 50"
+            min="0"
+            step="any"
+            placeholder="e.g., 50.5"
             value={formData.weightPerKatta}
             onChange={(e) => setFormData({ ...formData, weightPerKatta: e.target.value })}
             required
@@ -387,8 +388,8 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
             id="purchaseRate"
             type="number"
             min="0"
-            step="0.01"
-            placeholder="e.g., 40"
+            step="any"
+            placeholder="e.g., 40.5"
             value={formData.purchaseRate}
             onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
             required
@@ -400,7 +401,8 @@ function AddStockForm({ onSuccess }: { onSuccess: () => void }) {
             id="bhardanaRate"
             type="number"
             min="0"
-            placeholder="e.g., 20"
+            step="any"
+            placeholder="e.g., 20.5"
             value={formData.bhardanaRate}
             onChange={(e) => setFormData({ ...formData, bhardanaRate: e.target.value })}
           />

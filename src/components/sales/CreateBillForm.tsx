@@ -197,11 +197,11 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
       </div>
       <div>
         <Label>Rate</Label>
-        <Input type="number" value={formData.rate} onChange={e => setFormData({ ...formData, rate: e.target.value })} required />
+        <Input type="number" step="any" value={formData.rate} onChange={e => setFormData({ ...formData, rate: e.target.value })} required />
       </div>
       <div>
         <Label>Bhardana (per Katta)</Label>
-        <Input type="number" value={formData.bhardanaRate} onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })} placeholder="e.g., 20" />
+        <Input type="number" step="any" value={formData.bhardanaRate} onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })} placeholder="e.g., 20.5" />
       </div>
       <div>
         <Label>Rate Type</Label>

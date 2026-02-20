@@ -146,6 +146,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
           <Label>Weight per Katta (kg)</Label>
           <Input
             type="number"
+            step="any"
             value={formData.weightPerKatta}
             onChange={e =>
               setFormData({
@@ -162,6 +163,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
           <Label>Rate</Label>
           <Input
             type="number"
+            step="any"
             value={formData.purchaseRate}
             onChange={e =>
               setFormData({
@@ -176,6 +178,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
           <Label>Bhardana (per Katta)</Label>
           <Input
             type="number"
+            step="any"
             value={formData.bhardanaRate}
             onChange={e =>
               setFormData({
