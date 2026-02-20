@@ -123,11 +123,9 @@ function PartiesGrid({
   onRefresh?: () => void;
 }) {
    const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
 };
 
   if (parties.length === 0) {
@@ -444,11 +442,9 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
   }, [partyId]);
 
    const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
 };
 
   const currentBalance = entries.length > 0 ? entries[entries.length - 1].balance : 0;
@@ -763,6 +759,7 @@ function EditLedgerEntryDialog({ entry, onSuccess }: { entry: LedgerEntry; onSuc
               <Input
                 id="debit"
                 type="number"
+                step="any"
                 value={formData.debit}
                 onChange={(e) => setFormData({ ...formData, debit: Number(e.target.value) })}
                 required
@@ -773,6 +770,7 @@ function EditLedgerEntryDialog({ entry, onSuccess }: { entry: LedgerEntry; onSuc
               <Input
                 id="credit"
                 type="number"
+                step="any"
                 value={formData.credit}
                 onChange={(e) => setFormData({ ...formData, credit: Number(e.target.value) })}
                 required
@@ -833,7 +831,7 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
           id="amount"
           type="number"
           min="0"
-          step="0.01"
+          step="any"
           placeholder="Enter amount"
           value={formData.amount}
           onChange={(e) => setFormData({ ...formData, amount: e.target.value })}

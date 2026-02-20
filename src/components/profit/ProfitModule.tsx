@@ -15,12 +15,10 @@ export function ProfitModule() {
   }, []);
 
    const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
+  };
 
   const totalProfit = profits.reduce((sum, p) => sum + p.profit, 0);
   const totalSales = profits.reduce((sum, p) => sum + p.sellingAmount, 0);

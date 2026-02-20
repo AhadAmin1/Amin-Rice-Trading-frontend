@@ -83,12 +83,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }, []);
 
    const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
+  };
 
   const formatWeight = (kg: number) => {
     if (kg >= 1000) {

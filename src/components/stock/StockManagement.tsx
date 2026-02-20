@@ -44,12 +44,10 @@ const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   );
 
  const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
+  };
 
 
 

@@ -33,12 +33,10 @@ export function CashBook() {
   );
 
    const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('en-PK', {
-    style: 'currency',
-    currency: 'PKR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 2,
+    }).format(amount)}`;
+  };
 
   const totalDebit = entries.reduce((sum, e) => sum + e.debit, 0);
   const totalCredit = entries.reduce((sum, e) => sum + e.credit, 0);
@@ -306,6 +304,7 @@ function EditCashEntryDialog({ entry, onSuccess }: { entry: CashEntry; onSuccess
               <Input
                 id="edit-debit"
                 type="number"
+                step="any"
                 value={formData.debit}
                 onChange={(e) => setFormData({ ...formData, debit: Number(e.target.value) })}
                 required
@@ -316,6 +315,7 @@ function EditCashEntryDialog({ entry, onSuccess }: { entry: CashEntry; onSuccess
               <Input
                 id="edit-credit"
                 type="number"
+                step="any"
                 value={formData.credit}
                 onChange={(e) => setFormData({ ...formData, credit: Number(e.target.value) })}
                 required
@@ -401,12 +401,12 @@ function AddCashForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="amount">Amount (₹) *</Label>
+        <Label htmlFor="amount">Amount (RS) *</Label>
         <Input
           id="amount"
           type="number"
           min="0"
-          step="0.01"
+          step="any"
           placeholder="Enter amount"
           value={formData.amount}
           onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
