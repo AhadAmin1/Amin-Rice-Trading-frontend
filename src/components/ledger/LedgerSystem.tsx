@@ -149,7 +149,7 @@ function PartiesGrid({
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     name: party.name,
-    phone: party.phone || '',
+    phone: party.phone || '+92 ',
     address: party.address || '',
   });
 
@@ -186,7 +186,12 @@ function PartiesGrid({
             <Label>Phone</Label>
             <Input
               value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+92 300 1234567"
+              onChange={(e) => {
+                let val = e.target.value;
+                if (!val.startsWith('+92 ')) val = '+92 ' + val.replace(/^\+92\s?/, '');
+                setForm({ ...form, phone: val });
+              }}
             />
           </div>
 
@@ -303,7 +308,7 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
   const [formData, setFormData] = useState({
     name: '',
     type: 'Buyer' as 'Buyer' | 'Miller',
-    phone: '',
+    phone: '+92 ',
     address: '',
   });
 
@@ -366,9 +371,13 @@ function AddPartyDialog({ onSuccess }: { onSuccess: () => void }) {
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
-              placeholder="e.g., 9876543210"
+              placeholder="+92 300 1234567"
               value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (!val.startsWith('+92 ')) val = '+92 ' + val.replace(/^\+92\s?/, '');
+                setFormData({ ...formData, phone: val });
+              }}
             />
           </div>
 
@@ -619,7 +628,7 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
                     <div className="flex flex-col">
                       <span className="font-medium">{entry.date}</span>
                       <span className="text-xs text-slate-400">
-                        {formatDistanceToNow(new Date(entry.date), { addSuffix: true })}
+                        {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : ''}
                       </span>
                     </div>
                   </TableCell>
@@ -650,6 +659,33 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
                   <TableCell className="text-right font-bold">
                     {formatCurrency(entry.balance)}
                   </TableCell>
+                  <TableCell className="text-right">
+                    {!entry.billId && (
+                      <div className="flex justify-end gap-1">
+                        <EditLedgerEntryDialog 
+                          entry={entry} 
+                          onSuccess={async () => {
+                            const newEntries = await dataStore.getPartyLedger(partyId);
+                            setEntries(newEntries);
+                          }} 
+                        />
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={async () => {
+                            if (confirm('Are you sure you want to delete this entry?')) {
+                              await dataStore.deleteLedgerEntry(entry.id);
+                              const newEntries = await dataStore.getPartyLedger(partyId);
+                              setEntries(newEntries);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -657,6 +693,89 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
         </Table>
       </div>
     </div>
+  );
+}
+
+function EditLedgerEntryDialog({ entry, onSuccess }: { entry: LedgerEntry; onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    date: entry.date,
+    particulars: entry.particulars,
+    debit: entry.debit,
+    credit: entry.credit,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await dataStore.updateLedgerEntry(entry.id, formData);
+    setOpen(false);
+    onSuccess();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Ledger Entry</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="particulars">Particulars</Label>
+            <Input
+              id="particulars"
+              value={formData.particulars}
+              onChange={(e) => setFormData({ ...formData, particulars: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="debit">Debit</Label>
+              <Input
+                id="debit"
+                type="number"
+                value={formData.debit}
+                onChange={(e) => setFormData({ ...formData, debit: Number(e.target.value) })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="credit">Credit</Label>
+              <Input
+                id="credit"
+                type="number"
+                value={formData.credit}
+                onChange={(e) => setFormData({ ...formData, credit: Number(e.target.value) })}
+                required
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-white">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

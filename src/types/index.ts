@@ -68,6 +68,7 @@ export interface LedgerEntry {
   id: string;
   date: string;
   partyId: string;
+  billId?: string; // Add this
   partyName: string;
   partyType: PartyType;
   particulars: string;

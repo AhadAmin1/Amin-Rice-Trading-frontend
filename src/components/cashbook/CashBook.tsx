@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Wallet, ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, Wallet, ArrowDownLeft, ArrowUpRight, TrendingUp, TrendingDown, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { dataStore } from '@/store/dataStore';
 import type { CashEntry } from '@/types';
+import { formatDistanceToNow } from 'date-fns';
 
 export function CashBook() {
   const [entries, setEntries] = useState<CashEntry[]>([]);
@@ -137,22 +138,22 @@ export function CashBook() {
               className="pl-10"
             />
           </div>
-          <CashEntriesTable entries={filteredEntries} />
+          <CashEntriesTable entries={filteredEntries} onRefresh={loadEntries} />
         </TabsContent>
 
         <TabsContent value="in" className="space-y-4">
-          <CashEntriesTable entries={filteredEntries.filter(e => e.debit > 0)} />
+          <CashEntriesTable entries={filteredEntries.filter(e => e.debit > 0)} onRefresh={loadEntries} />
         </TabsContent>
 
         <TabsContent value="out" className="space-y-4">
-          <CashEntriesTable entries={filteredEntries.filter(e => e.credit > 0)} />
+          <CashEntriesTable entries={filteredEntries.filter(e => e.credit > 0)} onRefresh={loadEntries} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
+function CashEntriesTable({ entries, onRefresh }: { entries: CashEntry[]; onRefresh?: () => void }) {
  const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-PK', {
     style: 'currency',
@@ -181,12 +182,20 @@ function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
             <TableHead className="text-right">Cash In</TableHead>
             <TableHead className="text-right">Cash Out</TableHead>
             <TableHead className="text-right">Balance</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {entries.map((entry) => (
+          {entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry) => (
             <TableRow key={entry.id} className="hover:bg-slate-50">
-              <TableCell>{entry.date}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium">{entry.date}</span>
+                  <span className="text-xs text-slate-400">
+                    {entry.createdAt ? formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) : ''}
+                  </span>
+                </div>
+              </TableCell>
               <TableCell className="font-medium">{entry.description}</TableCell>
               <TableCell>
                 {entry.billReference ? (
@@ -218,11 +227,112 @@ function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
               <TableCell className="text-right font-bold">
                 {formatCurrency(entry.balance)}
               </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-1">
+                  <EditCashEntryDialog entry={entry} onSuccess={() => onRefresh?.()} />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    onClick={async () => {
+                      if (confirm('Delete this cash entry?')) {
+                        await dataStore.deleteCashEntry(entry.id);
+                        onRefresh?.();
+                      }
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+function EditCashEntryDialog({ entry, onSuccess }: { entry: CashEntry; onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [formData, setFormData] = useState({
+    date: entry.date,
+    description: entry.description,
+    debit: entry.debit,
+    credit: entry.credit,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await dataStore.updateCashEntry(entry.id, formData);
+    setOpen(false);
+    onSuccess();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-slate-400 hover:text-slate-600">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Cash Entry</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-date">Date</Label>
+            <Input
+              id="edit-date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-description">Description</Label>
+            <Input
+              id="edit-description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-debit">Cash In</Label>
+              <Input
+                id="edit-debit"
+                type="number"
+                value={formData.debit}
+                onChange={(e) => setFormData({ ...formData, debit: Number(e.target.value) })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-credit">Cash Out</Label>
+              <Input
+                id="edit-credit"
+                type="number"
+                value={formData.credit}
+                onChange={(e) => setFormData({ ...formData, credit: Number(e.target.value) })}
+                required
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" className="flex-1 bg-amber-500 hover:bg-amber-600 text-white">
+              Save Changes
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

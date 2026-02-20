@@ -186,6 +186,18 @@ class DataStore {
     return mapId(data);
   }
 
+  async updateCashEntry(id: string, data: Partial<CashEntry>): Promise<CashEntry> {
+    const res = await fetchJson(`/cash/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+    return mapId(res.entry);
+  }
+
+  async deleteCashEntry(id: string): Promise<void> {
+    await fetchJson(`/cash/${id}`, { method: 'DELETE' });
+  }
+
   // Ledger
   async getLedgerEntries(): Promise<LedgerEntry[]> {
     // We don't have a 'get ALL ledger entries' endpoint currently exposed?
@@ -215,6 +227,18 @@ class DataStore {
       body: JSON.stringify(entry)
     });
     return mapId(data);
+  }
+
+  async updateLedgerEntry(id: string, data: any): Promise<LedgerEntry> {
+    const res = await fetchJson(`/ledger/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    return mapId(res);
+  }
+
+  async deleteLedgerEntry(id: string): Promise<void> {
+    await fetchJson(`/ledger/${id}`, { method: 'DELETE' });
   }
 
   // Pay Miller / Receive from Buyer (These are wrappers around addCash/addLedger)
