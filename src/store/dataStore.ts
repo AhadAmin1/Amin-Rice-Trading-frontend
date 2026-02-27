@@ -54,12 +54,24 @@ const mapId = (item: any): any => {
 class DataStore {
   private activeRequests = 0;
   private listeners: ((loading: boolean) => void)[] = [];
+  private updateListeners: (() => void)[] = [];
 
   subscribe(listener: (loading: boolean) => void) {
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter(l => l !== listener);
     };
+  }
+
+  onUpdate(listener: () => void) {
+    this.updateListeners.push(listener);
+    return () => {
+      this.updateListeners = this.updateListeners.filter(l => l !== listener);
+    };
+  }
+
+  private notifyUpdate() {
+    this.updateListeners.forEach(l => l());
   }
 
   setLoading(loading: boolean) {
@@ -97,6 +109,7 @@ class DataStore {
       method: 'POST',
       body: JSON.stringify(party),
     });
+    this.notifyUpdate();
     return mapId(data);
   }
 
@@ -105,11 +118,13 @@ class DataStore {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    this.notifyUpdate();
     return mapId(res);
   }
 
   async deleteParty(id: string): Promise<void> {
     await fetchJson(`/parties/${id}`, { method: 'DELETE' });
+    this.notifyUpdate();
   }
 
   // Stock
@@ -128,6 +143,7 @@ class DataStore {
       method: 'POST',
       body: JSON.stringify(stock),
     });
+    this.notifyUpdate();
     return mapId(data);
   }
 
@@ -136,11 +152,13 @@ class DataStore {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    this.notifyUpdate();
     return mapId(res);
   }
 
   async deleteStock(id: string): Promise<void> {
     await fetchJson(`/stock/${id}`, { method: 'DELETE' });
+    this.notifyUpdate();
   }
 
   // Bills
@@ -155,8 +173,7 @@ class DataStore {
       method: 'POST',
       body: JSON.stringify(bill),
     });
-    // The backend returns { bill, stock, ... } but we just need the bill usually?
-    // Or we return the bill object.
+    this.notifyUpdate();
     return mapId(data.bill); 
   }
 
@@ -165,11 +182,13 @@ class DataStore {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    this.notifyUpdate();
     return mapId(res);
   }
 
   async deleteBill(id: string): Promise<void> {
     await fetchJson(`/bills/${id}`, { method: 'DELETE' });
+    this.notifyUpdate();
   }
 
   // Cash Book
@@ -183,6 +202,7 @@ class DataStore {
       method: 'POST',
       body: JSON.stringify(entry),
     });
+    this.notifyUpdate();
     return mapId(data);
   }
 
@@ -191,11 +211,13 @@ class DataStore {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+    this.notifyUpdate();
     return mapId(res.entry);
   }
 
   async deleteCashEntry(id: string): Promise<void> {
     await fetchJson(`/cash/${id}`, { method: 'DELETE' });
+    this.notifyUpdate();
   }
 
   // Ledger
@@ -226,6 +248,7 @@ class DataStore {
       method: 'POST',
       body: JSON.stringify(entry)
     });
+    this.notifyUpdate();
     return mapId(data);
   }
 
@@ -234,11 +257,13 @@ class DataStore {
       method: 'PUT',
       body: JSON.stringify(data)
     });
+    this.notifyUpdate();
     return mapId(res);
   }
 
   async deleteLedgerEntry(id: string): Promise<void> {
     await fetchJson(`/ledger/${id}`, { method: 'DELETE' });
+    this.notifyUpdate();
   }
 
   // Pay Miller / Receive from Buyer (These are wrappers around addCash/addLedger)

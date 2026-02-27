@@ -76,10 +76,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    dataStore.getDashboardSummary()
-      .then(setSummary)
-      .finally(() => setLoading(false));
+    const loadSummary = () => {
+      setLoading(true);
+      dataStore.getDashboardSummary()
+        .then(setSummary)
+        .finally(() => setLoading(false));
+    };
+
+    loadSummary();
+    const unsubscribe = dataStore.onUpdate(loadSummary);
+    return () => unsubscribe();
   }, []);
 
    const formatCurrency = (amount: number) => {
@@ -169,9 +175,15 @@ function RecentBills() {
   const [bills, setBills] = useState<any[]>([]);
 
   useEffect(() => {
-    dataStore.getBills().then(allBills => {
-      setBills(allBills.slice(-5).reverse());
-    });
+    const fetchBills = () => {
+      dataStore.getBills().then(allBills => {
+        setBills(allBills.slice(-5).reverse());
+      });
+    };
+
+    fetchBills();
+    const unsubscribe = dataStore.onUpdate(fetchBills);
+    return () => unsubscribe();
   }, []);
 
  const formatCurrency = (amount: number) => {
@@ -218,9 +230,15 @@ function RecentCashEntries() {
   const [entries, setEntries] = useState<any[]>([]);
 
   useEffect(() => {
-    dataStore.getCashEntries().then(allEntries => {
-      setEntries(allEntries.slice(-5).reverse());
-    });
+    const fetchEntries = () => {
+      dataStore.getCashEntries().then(allEntries => {
+        setEntries(allEntries.slice(-5).reverse());
+      });
+    };
+
+    fetchEntries();
+    const unsubscribe = dataStore.onUpdate(fetchEntries);
+    return () => unsubscribe();
   }, []);
 
  const formatCurrency = (amount: number) => {

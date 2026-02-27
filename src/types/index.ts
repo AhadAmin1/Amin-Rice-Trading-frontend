@@ -30,6 +30,9 @@ export interface StockItem {
   remainingWeight: number;
   bhardana?: number;
   bhardanaRate?: number;
+  receiptNumber: string;
+  paidAmount: number;
+  status: 'unpaid' | 'partial' | 'paid';
   createdAt: string;
 }
 
@@ -74,7 +77,8 @@ export interface LedgerEntry {
   id: string;
   date: string;
   partyId: string;
-  billId?: string; // Add this
+  billId?: string;
+  stockId?: string;
   partyName: string;
   partyType: PartyType;
   particulars: string;

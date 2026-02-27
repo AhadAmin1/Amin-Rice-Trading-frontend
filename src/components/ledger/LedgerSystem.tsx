@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { dataStore } from '@/store/dataStore';
-import type { LedgerEntry, Party, ViewType, Bill } from '@/types';
+import type { LedgerEntry, Party, ViewType, Bill, StockItem } from '@/types';
 import { Pencil, Trash2, Share2 as ShareIcon, Phone, MapPin } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -37,6 +37,14 @@ export function LedgerSystem({ onNavigate }: LedgerSystemProps) {
 
   useEffect(() => {
     refreshParties();
+
+    // Auto-reload on global data changes
+    const unsubscribe = dataStore.onUpdate(() => {
+      console.log("Real-time update triggered for LedgerSystem");
+      refreshParties();
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const filteredParties = parties.filter(party => 
@@ -625,21 +633,21 @@ export function PartyLedger({ partyId, onBack }: PartyLedgerProps) {
       <div className="border rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50">
+            <TableRow className="bg-slate-50 text-[11px] uppercase tracking-wider">
               <TableHead>Date</TableHead>
               <TableHead>Particulars</TableHead>
-              <TableHead>Bill No</TableHead>
-              <TableHead className="text-right">Katte</TableHead>
+              <TableHead>Bill / RCP</TableHead>
+              <TableHead className="text-right">Qty</TableHead>
               <TableHead className="text-right">Weight</TableHead>
               <TableHead className="text-right">Rate</TableHead>
               <TableHead className="text-right">Bhardana</TableHead>
-              <TableHead className="text-right">
-                {party.type === 'Buyer' ? 'Debit (Received)' : 'Debit (Purchase)'}
+              <TableHead className="text-right font-black text-slate-900 bg-slate-100">
+                {party.type === 'Buyer' ? 'Sales (Debit)' : 'Purchase (Debit)'}
               </TableHead>
-              <TableHead className="text-right">
-                {party.type === 'Buyer' ? 'Credit (Sale)' : 'Credit (Paid)'}
+              <TableHead className="text-right font-black text-slate-900 bg-slate-100/50">
+                {party.type === 'Buyer' ? 'Recieved (Credit)' : 'Paid (Credit)'}
               </TableHead>
-              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="text-right font-black text-amber-600">Balance</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -816,25 +824,40 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
     amount: '',
     description: '',
     billId: '',
+    stockId: '',
   });
 
   const [bills, setBills] = useState<Bill[]>([]);
+  const [receipts, setReceipts] = useState<StockItem[]>([]);
+
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const loadBills = async () => {
-      const allBills = await dataStore.getBills();
-      // Filter unpaid/partial bills for this party
-      const partyBills = allBills.filter(b => 
-        (b.buyerId === party.id || b.millerId === party.id) && 
-        b.status !== 'paid'
-      );
-      setBills(partyBills);
+    const loadData = async () => {
+      const [allBills, allStock] = await Promise.all([
+        dataStore.getBills(),
+        dataStore.getStock()
+      ]);
+      
+      // Filter unpaid/partial bills/receipts for this party
+      if (party.type === 'Buyer') {
+        setBills(allBills.filter(b => b.buyerId === party.id && b.status !== 'paid'));
+      } else if (party.type === 'Miller') {
+        setReceipts(allStock.filter(s => s.millerId === party.id && s.status !== 'paid'));
+        // Also show bills if any (though usually bills are for buyers, let's keep it generic)
+        setBills(allBills.filter(b => b.millerId === party.id && b.status !== 'paid'));
+      }
     };
-    loadBills();
-  }, [party.id]);
+    loadData();
+  }, [party.id, party.type]);
+
+  const selectedBill = bills.find(b => b.id === formData.billId);
+  const selectedReceipt = receipts.find(s => s.id === formData.stockId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    setLoading(true);
     
     const amount = Number(formData.amount);
     
@@ -859,13 +882,14 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
       await dataStore.addLedgerEntry({
         partyId: party.id,
         billId: formData.billId || undefined,
+        stockId: formData.stockId || undefined,
         date: formData.date,
-        particulars: formData.description || `Payment Made${formData.billId ? ' for Bill' : ''}`,
+        particulars: formData.description || `Payment Made${formData.billId ? ' for Bill' : formData.stockId ? ' for Receipt' : ''}`,
         debit: 0,
         credit: amount, // Credit reduces balance for Miller too
       });
       // Also add cash entry
-       await dataStore.addCashEntry({
+      await dataStore.addCashEntry({
         date: formData.date,
         description: `Payment to ${party.name} - ${formData.description}`,
         debit: 0,
@@ -874,6 +898,7 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
       });
     }
 
+    setLoading(false);
     onSuccess();
   };
 
@@ -890,25 +915,68 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
         />
       </div>
 
-      {bills.length > 0 && (
+      {(bills.length > 0 || receipts.length > 0) && (
         <div className="space-y-2">
-          <Label htmlFor="bill">Link to Bill (Optional)</Label>
+          <Label htmlFor="link">Link to {party.type === 'Buyer' ? 'Bill' : 'Bill or Receipt'} (Optional)</Label>
           <Select 
-            value={formData.billId} 
-            onValueChange={(val) => setFormData({ ...formData, billId: val })}
+            value={formData.billId || formData.stockId || "none"} 
+            onValueChange={(val) => {
+              if (val === "none") {
+                setFormData({ ...formData, billId: '', stockId: '' });
+              } else if (bills.some(b => b.id === val)) {
+                setFormData({ ...formData, billId: val, stockId: '' });
+              } else {
+                setFormData({ ...formData, billId: '', stockId: val });
+              }
+            }}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select a bill" />
+              <SelectValue placeholder="Select a bill or receipt" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No Bill (General Payment)</SelectItem>
+              <SelectItem value="none">No Link (General Payment)</SelectItem>
               {bills.map(bill => (
                 <SelectItem key={bill.id} value={bill.id}>
                   Bill #{bill.billNumber} ({bill.itemName}) - RS {bill.totalAmount - (bill.paidAmount || 0)} due
                 </SelectItem>
               ))}
+              {receipts.map(receipt => (
+                <SelectItem key={receipt.id} value={receipt.id}>
+                  Receipt #{receipt.receiptNumber} ({receipt.itemName}) - RS {receipt.totalAmount - (receipt.paidAmount || 0)} due
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
+        </div>
+      )}
+
+      {/* Selected Item Detail Preview */}
+      {(selectedBill || selectedReceipt) && (
+        <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-sm space-y-1">
+          <p className="font-semibold text-slate-700 mb-2 border-b pb-1">Link Details:</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <span className="text-slate-500">Number:</span>
+            <span className="font-medium">{selectedBill ? `Bill #${selectedBill.billNumber}` : `Receipt #${selectedReceipt?.receiptNumber}`}</span>
+            
+            <span className="text-slate-500">Item:</span>
+            <span className="font-medium">{selectedBill?.itemName || selectedReceipt?.itemName}</span>
+            
+            <span className="text-slate-500">Quantity:</span>
+            <span className="font-medium">{selectedBill?.katte || selectedReceipt?.katte} Katte</span>
+            
+            <span className="text-slate-500">Weight:</span>
+            <span className="font-medium">{(selectedBill?.weight || selectedReceipt?.totalWeight || 0).toFixed(0)} kg</span>
+            
+            <span className="text-slate-500">Total Amount:</span>
+            <span className="font-medium">RS {new Intl.NumberFormat().format(selectedBill?.totalAmount || selectedReceipt?.totalAmount || 0)}</span>
+            
+            <div className="col-span-2 border-t mt-2 pt-1 font-bold flex justify-between">
+              <span className="text-slate-700">Remaining Balance:</span>
+              <span className="text-red-600">
+                RS {new Intl.NumberFormat().format((selectedBill?.totalAmount || selectedReceipt?.totalAmount || 0) - (selectedBill?.paidAmount || selectedReceipt?.paidAmount || 0))}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -954,6 +1022,7 @@ function PaymentForm({ party, onSuccess }: { party: Party; onSuccess: () => void
     </form>
   );
 }
+
 
 
 

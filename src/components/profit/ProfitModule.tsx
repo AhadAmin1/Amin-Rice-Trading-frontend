@@ -11,7 +11,13 @@ export function ProfitModule() {
   const [profits, setProfits] = useState<ProfitEntry[]>([]);
 
   useEffect(() => {
-    dataStore.getProfitEntries().then(setProfits);
+    const fetchProfits = () => {
+      dataStore.getProfitEntries().then(setProfits);
+    };
+
+    fetchProfits();
+    const unsubscribe = dataStore.onUpdate(fetchProfits);
+    return () => unsubscribe();
   }, []);
 
    const formatCurrency = (amount: number) => {

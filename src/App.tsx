@@ -53,6 +53,11 @@ function App() {
     window.scrollTo(0, 0);
   };
 
+  useEffect(() => {
+    (window as any).onNavigate = handleNavigate;
+  }, []);
+
+
   const renderContent = () => {
     switch (currentView) {
       case 'dashboard':

@@ -39,6 +39,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     purchaseRate: String(stock.purchaseRate),
     bhardanaRate: String(stock.bhardanaRate || 0),
     rateType: stock.rateType as "per_kg" | "per_katta",
+    receiptNumber: stock.receiptNumber || '',
   });
 
   const katte = Number(formData.katte) || 0;
@@ -75,6 +76,7 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       bhardana,
       rateType: formData.rateType,
       totalAmount,
+      receiptNumber: formData.receiptNumber,
 
       // 🔴 keep existing remaining values
       remainingKatte: stock.remainingKatte,
@@ -120,14 +122,25 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
         </div>
       </div>
 
-      <div className="space-y-1">
-        <Label>Item</Label>
-        <Input
-          value={formData.itemName}
-          onChange={e =>
-            setFormData({ ...formData, itemName: e.target.value })
-          }
-        />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1">
+          <Label>Item</Label>
+          <Input
+            value={formData.itemName}
+            onChange={e =>
+              setFormData({ ...formData, itemName: e.target.value })
+            }
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>Receipt Number</Label>
+          <Input
+            value={formData.receiptNumber}
+            onChange={e =>
+              setFormData({ ...formData, receiptNumber: e.target.value })
+            }
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -210,6 +223,10 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
 
       {/* Preview */}
       <div className="bg-slate-50 p-4 rounded-lg text-sm space-y-1">
+        <div className="flex justify-between">
+          <span>Receipt Number</span>
+          <b className="text-blue-600 font-mono">{formData.receiptNumber || 'N/A'}</b>
+        </div>
         <div className="flex justify-between">
           <span>Total Weight</span>
           <b>{totalWeight.toFixed(0)} kg</b>

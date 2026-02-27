@@ -4,15 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { dataStore } from "@/store/dataStore";
-import type { Buyer, StockItem, Bill } from "@/types";
+import type { Party, StockItem, Bill } from "@/types";
 
 type CreateBillFormProps = {
-  buyers: Buyer[];
+  parties: Party[];
   stocks: StockItem[];
   onSuccess: (bill: Bill) => void;
 };
 
-export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProps) {
+export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormProps) {
   const [formData, setFormData] = useState({
     buyerId: "",
     stockId: "",
@@ -52,10 +52,10 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
 
   // Set initial values when buyers/stocks load
   useEffect(() => {
-    if (buyers.length > 0 && !formData.buyerId) {
-      setFormData(prev => ({ ...prev, buyerId: buyers[0].id }));
+    if (parties.length > 0 && !formData.buyerId) {
+      setFormData(prev => ({ ...prev, buyerId: parties[0].id }));
     }
-  }, [buyers]);
+  }, [parties]);
 
   useEffect(() => {
     const availableStocks = stocks.filter(s => s.remainingKatte > 0);
@@ -70,7 +70,7 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
 
     try {
       const selectedStock = stocks.find(s => s.id === formData.stockId);
-      const buyer = buyers.find(b => b.id === formData.buyerId);
+      const buyer = parties.find(b => b.id === formData.buyerId);
       
       if (!selectedStock || !buyer) {
           alert("Please select stock and buyer");
@@ -140,10 +140,10 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
     <form onSubmit={handleSubmit} className="space-y-4">
     <div className="grid grid-cols-2 gap-4">
       <div>
-        <Label>Buyer</Label>
-        {buyers.length === 0 ? (
+        <Label>Buyer / Party</Label>
+        {parties.length === 0 ? (
           <div className="text-sm text-slate-500 p-2 bg-slate-50 rounded-md">
-            No buyers found. Please add a buyer first.
+            No parties found. Please add a party first.
           </div>
         ) : (
           <Select 
@@ -154,7 +154,11 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
               <SelectValue placeholder="Select buyer" />
             </SelectTrigger>
             <SelectContent>
-              {buyers.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+              {parties.map(b => (
+                <SelectItem key={b.id} value={b.id}>
+                  {b.name} ({b.type})
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
@@ -181,6 +185,24 @@ export function CreateBillForm({ buyers, stocks, onSuccess }: CreateBillFormProp
               ))}
             </SelectContent>
           </Select>
+        )}
+        {selectedStock && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-md text-xs space-y-1 shadow-sm">
+            <p className="font-bold text-blue-900 flex justify-between">
+              <span>Purchase Info:</span>
+              <span className="text-[10px] bg-blue-200 px-1 rounded text-blue-800 uppercase tracking-tighter self-start font-black">{selectedStock.receiptNumber}</span>
+            </p>
+            <div className="grid grid-cols-2 text-blue-800 opacity-90">
+              <span>Miller:</span>
+              <span className="text-right font-medium">{selectedStock.millerName}</span>
+              <span>Purchase Rate:</span>
+              <span className="text-right font-medium">{formatCurrency(selectedStock.purchaseRate)} / {selectedStock.rateType === 'per_kg' ? 'kg' : 'katta'}</span>
+              <span>Original Qty:</span>
+              <span className="text-right font-medium">{selectedStock.katte} Katte ({selectedStock.totalWeight.toFixed(0)}kg)</span>
+              <span>Original Cost:</span>
+              <span className="text-right font-bold">{formatCurrency(selectedStock.totalAmount)}</span>
+            </div>
+          </div>
         )}
       </div>
       <div>

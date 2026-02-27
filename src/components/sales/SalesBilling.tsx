@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -16,7 +17,7 @@ import { BillView } from "./BillView";
 // ================= SALES BILLING MAIN =================
 export function SalesBilling() {
   const [bills, setBills] = useState<Bill[]>([]);
-  const [buyers, setBuyers] = useState<Party[]>([]);
+  const [parties, setParties] = useState<Party[]>([]);
   const [stocks, setStocks] = useState<StockItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -27,6 +28,11 @@ export function SalesBilling() {
   // Load buyers, stocks, bills
   useEffect(() => {
     loadData();
+    const unsubscribe = dataStore.onUpdate(() => {
+      console.log("Real-time update triggered for SalesBilling");
+      loadData();
+    });
+    return () => unsubscribe();
   }, []);
 
   // const loadData = async () => {
@@ -39,14 +45,14 @@ export function SalesBilling() {
   const loadData = async () => {
     try {
       console.log("Loading data...");
-      const [buyersData, stocksData, billsData] = await Promise.all([
-        dataStore.getBuyers(),
+      const [partiesData, stocksData, billsData] = await Promise.all([
+        dataStore.getParties(),
         dataStore.getStock(),
         dataStore.getBills(),
       ]);
 
-      console.log("Fetched - Buyers:", buyersData.length, "Stocks:", stocksData.length, "Bills:", billsData.length);
-      setBuyers(buyersData);
+      console.log("Fetched - Parties:", partiesData.length, "Stocks:", stocksData.length, "Bills:", billsData.length);
+      setParties(partiesData);
       setStocks(stocksData);
       setBills(billsData);
     } catch (err) {
@@ -89,9 +95,9 @@ export function SalesBilling() {
 
   const filteredBills = bills.filter(
     b =>
-      b.billNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.itemName.toLowerCase().includes(searchTerm.toLowerCase())
+      (b.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.buyerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (b.itemName || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // const handleDeleteBill = async (id: string) => {
@@ -101,7 +107,7 @@ export function SalesBilling() {
   // };
 
   const handleWhatsAppShare = (bill: Bill) => {
-    const buyer = buyers.find(p => p.id === bill.buyerId);
+    const buyer = parties.find(p => p.id === bill.buyerId);
     const phone = buyer?.phone || '';
     const message = `*INVOICE: ${bill.billNumber}*\n\n` +
       `Dear *${bill.buyerName}*,\n` +
@@ -131,7 +137,7 @@ export function SalesBilling() {
               <DialogTitle>Create New Bill</DialogTitle>
             </DialogHeader>
             <CreateBillForm
-              buyers={buyers}
+              parties={parties}
               stocks={stocks}
               onSuccess={bill => {
                 setIsAddDialogOpen(false);
@@ -196,7 +202,7 @@ export function SalesBilling() {
           {editBill && (
             <EditBillForm
               bill={editBill}
-              buyers={buyers}
+              parties={parties}
               stocks={stocks}
               onSuccess={() => {
                 loadBills();
@@ -213,12 +219,12 @@ export function SalesBilling() {
 // ================= EDIT BILL FORM =================
 function EditBillForm({
   bill,
-  buyers,
+  parties,
   stocks,
   onSuccess,
 }: {
   bill: Bill;
-  buyers: Party[];
+  parties: Party[];
   stocks: StockItem[];
   onSuccess: () => void;
 }) {
@@ -228,6 +234,7 @@ function EditBillForm({
     stockId: bill.stockId,
     katte: bill.katte.toString(),
     rate: bill.rate.toString(),
+    bhardanaRate: (bill.bhardanaRate || 0).toString(),
     rateType: bill.rateType,
   });
 
@@ -243,8 +250,14 @@ function EditBillForm({
     const katte = Number(formData.katte);
     const totalWeight = katte * selectedStock.weightPerKatta;
     const rate = Number(formData.rate);
-    const totalAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
-    const purchaseCost = totalWeight * (selectedStock.totalAmount / selectedStock.totalWeight);
+    const bhardanaRate = Number(formData.bhardanaRate) || 0;
+    const bhardana = katte * bhardanaRate;
+    
+    const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
+    const totalAmount = rawAmount + bhardana;
+    
+    const costPerKg = selectedStock.totalAmount / selectedStock.totalWeight;
+    const purchaseCost = totalWeight * costPerKg;
     const profit = totalAmount - purchaseCost;
 
     try {
@@ -255,6 +268,8 @@ function EditBillForm({
         katte,
         weight: totalWeight,
         rate,
+        bhardanaRate,
+        bhardana,
         rateType: formData.rateType as any,
         totalAmount,
         purchaseCost,
@@ -283,7 +298,7 @@ function EditBillForm({
             <SelectValue placeholder="Select buyer" />
           </SelectTrigger>
           <SelectContent>
-            {buyers.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            {parties.map(b => <SelectItem key={b.id} value={b.id}>{b.name} ({b.type})</SelectItem>)}
           </SelectContent>
         </Select>
         <Select 
@@ -309,6 +324,15 @@ function EditBillForm({
           value={formData.rate}
           onChange={e => setFormData({ ...formData, rate: e.target.value })}
         />
+        <div className="flex flex-col gap-1">
+          <Label className="text-[10px] text-slate-500 ml-1">Bhardana (Packaging)</Label>
+          <Input
+            type="number"
+            placeholder="Bhardana Rate"
+            value={formData.bhardanaRate}
+            onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })}
+          />
+        </div>
         <Select
           value={formData.rateType}
           onValueChange={value => setFormData({ ...formData, rateType: value as 'per_kg' | 'per_katta' })}
