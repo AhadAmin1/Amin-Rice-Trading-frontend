@@ -33,6 +33,9 @@ export interface StockItem {
   receiptNumber: string;
   paidAmount: number;
   status: 'unpaid' | 'partial' | 'paid';
+  paymentType: 'cash' | 'credit';
+  dueDays?: number;
+  dueDate?: string;
   createdAt: string;
 }
 
@@ -58,12 +61,16 @@ export interface Bill {
   bhardanaRate?: number;
   paidAmount: number;
   status: 'unpaid' | 'partial' | 'paid';
+  paymentType: 'cash' | 'credit';
+  dueDays?: number;
+  dueDate?: string;
   createdAt: string;
 }
 
 export interface CashEntry {
   id: string;
   date: string;
+  type: 'in' | 'out';
   description: string;
   billReference?: string;
   billId?: string; // Link to specific bill

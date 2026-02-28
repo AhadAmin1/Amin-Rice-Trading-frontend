@@ -3,6 +3,7 @@ import type { StockItem } from "@/types";
 import { Button } from "../ui/button";
 import { Download, Printer, CheckCircle2 } from "lucide-react";
 import html2canvas from "html2canvas";
+import { cn } from "@/lib/utils";
 
 export function ReceiptView({ stock }: { stock: StockItem }) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -103,6 +104,19 @@ export function ReceiptView({ stock }: { stock: StockItem }) {
             <div className="text-right">
               <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Date</p>
               <p className="font-bold text-slate-900">{stock.date || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Condition</p>
+              <span className={cn(
+                "font-black text-[13px] uppercase px-3 py-1 rounded-lg w-fit mt-1 shadow-sm border block",
+                stock.paymentType === 'credit' ? "bg-rose-50 text-rose-700 border-rose-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"
+              )}>
+                {stock.paymentType === 'credit' ? 'Udhar (Credit)' : 'Cash Payment'}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Due Date</p>
+              <p className="font-bold text-slate-900">{stock.dueDate || 'N/A'}</p>
             </div>
             <div className="col-span-2">
               <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Miller / Supplier</p>

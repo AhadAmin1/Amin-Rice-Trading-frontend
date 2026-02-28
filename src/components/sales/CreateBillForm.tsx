@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { dataStore } from "@/store/dataStore";
 import type { Party, StockItem, Bill } from "@/types";
+import { Info } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type CreateBillFormProps = {
   parties: Party[];
@@ -21,19 +23,19 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     bhardanaRate: "",
     rateType: "per_kg" as 'per_kg' | 'per_katta',
     billNo: "",
+    paymentType: 'cash' as 'cash' | 'credit',
+    dueDays: '0',
   });
 
   const [loading, setLoading] = useState(false);
 
-  // Values for preview calculation
   const selectedStock = stocks.find(s => s.id === formData.stockId);
   const katte = Number(formData.katte) || 0;
   const rate = Number(formData.rate) || 0;
   const bhardanaRate = Number(formData.bhardanaRate) || 0;
   const bhardana = katte * bhardanaRate;
   const totalWeight = selectedStock ? katte * selectedStock.weightPerKatta : 0;
-  // Total Amount = (Rate Amount) + Bhardana
-  // Bhardana is added to the total receivable from Buyer
+  
   const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
   const totalAmount = rawAmount + bhardana;
   
@@ -50,7 +52,6 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     }).format(amount);
   };
 
-  // Set initial values when buyers/stocks load
   useEffect(() => {
     if (parties.length > 0 && !formData.buyerId) {
       setFormData(prev => ({ ...prev, buyerId: parties[0].id }));
@@ -73,38 +74,30 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
       const buyer = parties.find(b => b.id === formData.buyerId);
       
       if (!selectedStock || !buyer) {
-          alert("Please select stock and buyer");
+          alert("Selection missing");
           setLoading(false);
           return;
       }
 
       const katte = Number(formData.katte);
-      const rate = Number(formData.rate);
-      
       if (katte > selectedStock.remainingKatte) {
-          alert("Insufficient stock");
+          alert("Insufficient stock in warehouse");
           setLoading(false);
           return;
       }
 
       const weightPerKatta = selectedStock.weightPerKatta;
       const totalWeight = katte * weightPerKatta;
-      
       const bhardanaRate = Number(formData.bhardanaRate) || 0;
       const bhardana = katte * bhardanaRate;
-      
-      const rawAmount = formData.rateType === 'per_kg' 
-        ? totalWeight * rate 
-        : katte * rate;
-      
+      const rawAmount = formData.rateType === 'per_kg' ? totalWeight * Number(formData.rate) : katte * Number(formData.rate);
       const totalAmount = rawAmount + bhardana;
-        
-      
-      // Cost per kg based on total purchase amount
       const costPerKg = selectedStock.totalAmount / selectedStock.totalWeight;
       const calculatedPurchaseCost = totalWeight * costPerKg;
-      
       const profit = totalAmount - calculatedPurchaseCost;
+
+      const days = formData.paymentType === 'credit' ? Number(formData.dueDays) : 3;
+      const dueDate = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       const bill = await dataStore.addBill({
         buyerId: formData.buyerId,
@@ -112,168 +105,236 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
         millerId: selectedStock.millerId,
         millerName: selectedStock.millerName,
         date: new Date().toISOString().split('T')[0],
-        // billNo: formData.billNo, // Backend generates bill number 
         itemName: selectedStock.itemName,
         stockId: selectedStock.id,
         katte,
         weightPerKatta,
-        weight: totalWeight, // Using weight field now
-        rate,
+        weight: totalWeight,
+        rate: Number(formData.rate),
         bhardanaRate,
         bhardana,
         rateType: formData.rateType,
         totalAmount,
         purchaseCost: calculatedPurchaseCost,
-        profit
+        profit,
+        billNumber: formData.billNo || undefined,
+        paymentType: formData.paymentType,
+        dueDays: days,
+        dueDate,
       } as any);
 
       onSuccess(bill);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to create bill");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <Label>Buyer / Party</Label>
-        {parties.length === 0 ? (
-          <div className="text-sm text-slate-500 p-2 bg-slate-50 rounded-md">
-            No parties found. Please add a party first.
-          </div>
-        ) : (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Invoice Number (Reference)</Label>
+          <Input 
+            placeholder="e.g. B-501"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+            value={formData.billNo} 
+            onChange={e => setFormData({ ...formData, billNo: e.target.value })} 
+            required 
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Buyer Assignment</Label>
           <Select 
               value={formData.buyerId} 
               onValueChange={value => setFormData({ ...formData, buyerId: value })}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select buyer" />
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue placeholder="Select target buyer" />
             </SelectTrigger>
-            <SelectContent>
-              {parties.map(b => (
-                <SelectItem key={b.id} value={b.id}>
-                  {b.name} ({b.type})
+            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
+              {parties.map(p => (
+                <SelectItem key={p.id} value={p.id} className="rounded-xl my-1 focus:bg-amber-50 focus:text-amber-700 font-bold">
+                  <div className="flex items-center gap-2">
+                    <span>{p.name}</span>
+                    <span className={cn(
+                      "text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter",
+                      p.type === 'Miller' ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                    )}>
+                      {p.type}
+                    </span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-      </div>
-      <div>
-        <Label>Stock</Label>
-        {stocks.filter(s => s.remainingKatte > 0).length === 0 ? (
-          <div className="text-sm text-slate-500 p-2 bg-slate-50 rounded-md">
-            No stock available. Please add stock first.
-          </div>
-        ) : (
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Stock Reservoir</Label>
           <Select 
               value={formData.stockId} 
               onValueChange={value => setFormData({ ...formData, stockId: value })}
           >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select stock" />
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue placeholder="Select stock batch" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
               {stocks.filter(s => s.remainingKatte > 0).map(s => (
-                <SelectItem key={s.id} value={s.id}>
-                    {s.itemName} ({s.remainingKatte} left)
+                <SelectItem key={s.id} value={s.id} className="rounded-xl my-1 focus:bg-amber-50 focus:text-amber-700">
+                  <div className="flex flex-col">
+                    <span className="font-bold">{s.itemName}</span>
+                    <span className="text-[9px] uppercase opacity-60">Miller: {s.millerName} | Available: {s.remainingKatte}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
-        {selectedStock && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-100 rounded-md text-xs space-y-1 shadow-sm">
-            <p className="font-bold text-blue-900 flex justify-between">
-              <span>Purchase Info:</span>
-              <span className="text-[10px] bg-blue-200 px-1 rounded text-blue-800 uppercase tracking-tighter self-start font-black">{selectedStock.receiptNumber}</span>
-            </p>
-            <div className="grid grid-cols-2 text-blue-800 opacity-90">
-              <span>Miller:</span>
-              <span className="text-right font-medium">{selectedStock.millerName}</span>
-              <span>Purchase Rate:</span>
-              <span className="text-right font-medium">{formatCurrency(selectedStock.purchaseRate)} / {selectedStock.rateType === 'per_kg' ? 'kg' : 'katta'}</span>
-              <span>Original Qty:</span>
-              <span className="text-right font-medium">{selectedStock.katte} Katte ({selectedStock.totalWeight.toFixed(0)}kg)</span>
-              <span>Original Cost:</span>
-              <span className="text-right font-bold">{formatCurrency(selectedStock.totalAmount)}</span>
+        </div>
+      </div>
+
+       {selectedStock && (
+         <div className="premium-glass p-6 rounded-[2rem] border-white/20 shadow-inner group transition-all duration-700 animate-in fade-in slide-in-from-top-4">
+            <div className="h-12 w-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shadow-inner group-active:scale-95 transition-all">
+              <Info className="h-6 w-6" />
             </div>
+            <div className="flex-1">
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-600 mb-1.5 underline decoration-amber-200 underline-offset-4">Stock Intelligence</h4>
+              <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                Allocating from <span className="text-slate-900 font-black">{selectedStock.itemName}</span>. Miller context: <span className="text-slate-900 font-black">{selectedStock.millerName}</span>. 
+                Sourcing value index: <span className="text-amber-600 font-black">{formatCurrency(selectedStock.purchaseRate)}</span>.
+              </p>
+            </div>
+         </div>
+       )}
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Dispatch Quantity</Label>
+          <Input 
+            type="number" 
+            value={formData.katte} 
+            placeholder="0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold placeholder:text-slate-300"
+            onChange={e => setFormData({ ...formData, katte: e.target.value })} 
+            required 
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Commercial Rate</Label>
+          <Input 
+            type="number" 
+            step="any" 
+            placeholder="0.00"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-emerald-600 placeholder:text-slate-300"
+            value={formData.rate} 
+            onChange={e => setFormData({ ...formData, rate: e.target.value })} 
+            required 
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Bhardana Charge</Label>
+          <Input 
+            type="number" 
+            step="any" 
+            value={formData.bhardanaRate} 
+            placeholder="Per Unit"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold placeholder:text-slate-300"
+            onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })} 
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Valuation Basis</Label>
+          <Select 
+              value={formData.rateType} 
+              onValueChange={value => setFormData({ ...formData, rateType: value as "per_kg" | "per_katta" })}
+          >
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+              <SelectItem value="per_kg" className="rounded-xl my-1 focus:bg-amber-50">Calculate Per KG</SelectItem>
+              <SelectItem value="per_katta" className="rounded-xl my-1 focus:bg-amber-50">Calculate Per Katta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Payment Condition</Label>
+          <Select 
+            value={formData.paymentType} 
+            onValueChange={(value: 'cash' | 'credit') => setFormData({ ...formData, paymentType: value })}
+          >
+            <SelectTrigger className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl shadow-2xl border-none">
+              <SelectItem value="cash" className="rounded-xl my-1">Immediate Cash</SelectItem>
+              <SelectItem value="credit" className="rounded-xl my-1">Credit (Udhar)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {formData.paymentType === 'credit' && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
+            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Payment Term (Days)</Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="e.g. 15"
+              className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+              value={formData.dueDays}
+              onChange={(e) => setFormData({ ...formData, dueDays: e.target.value })}
+            />
           </div>
         )}
       </div>
-      <div>
-        <Label>Bill No (Optional)</Label>
-        <Input 
-            value={formData.billNo} 
-            onChange={e => setFormData({ ...formData, billNo: e.target.value })} 
-            placeholder="Auto-generated if empty"
-        />
-      </div>
-      <div>
-        <Label>Katte</Label>
-        <Input type="number" value={formData.katte} onChange={e => setFormData({ ...formData, katte: e.target.value })} required />
-      </div>
-      <div>
-        <Label>Rate</Label>
-        <Input type="number" step="any" value={formData.rate} onChange={e => setFormData({ ...formData, rate: e.target.value })} required />
-      </div>
-      <div>
-        <Label>Bhardana (per Katta)</Label>
-        <Input type="number" step="any" value={formData.bhardanaRate} onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })} placeholder="e.g., 20.5" />
-      </div>
-      <div>
-        <Label>Rate Type</Label>
-        <Select 
-            value={formData.rateType} 
-            onValueChange={value => setFormData({ ...formData, rateType: value as "per_kg" | "per_katta" })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select rate type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="per_kg">Per Kg</SelectItem>
-            <SelectItem value="per_katta">Per Katta</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      </div>
 
-      {/* Calculation Preview */}
       {selectedStock && formData.katte && formData.rate && (
-        <div className="bg-amber-50 p-4 rounded-lg space-y-2 border border-amber-100">
-          <p className="text-sm font-semibold text-amber-900 border-b border-amber-200 pb-1 mb-2">
-            Bill Preview:
-          </p>
-          <div className="grid grid-cols-2 gap-y-2 text-sm text-amber-900">
-            <span>Total Weight:</span>
-            <span className="text-right font-medium">{totalWeight.toFixed(2)} kg</span>
-            
-            <span>Bhardana (Packaging):</span>
-            <span className="text-right font-medium">{formatCurrency(bhardana)}</span>
+        <div className="premium-glass p-8 rounded-[2.5rem] border-white/20 shadow-premium relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-amber-500/10 transition-all duration-1000" />
+          
+          <div className="flex items-center gap-3 mb-6 relative z-10">
+             <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
+             <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Institutional Commercial Hub</h5>
+          </div>
 
-            <span>Total Amount:</span>
-            <span className="text-right font-bold text-amber-700">{formatCurrency(totalAmount)}</span>
+          <div className="grid grid-cols-2 gap-y-8 relative z-10">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Shipping Mass (Est)</span>
+              <span className="text-xl font-black text-slate-900 tracking-tighter leading-none">{totalWeight.toFixed(2)} KG</span>
+            </div>
             
-            <div className="col-span-2 border-t border-amber-200 my-1"></div>
-            
-            <span className="text-slate-600">Purchase Cost:</span>
-            <span className="text-right text-slate-600 font-medium">{formatCurrency(purchaseCost)}</span>
-            
-            <span className="font-semibold">Estimated Profit:</span>
-            <span className={`text-right font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {formatCurrency(profit)}
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Projected Yield</span>
+              <span className={cn("text-xl font-black tabular-nums tracking-tighter leading-none", profit >= 0 ? "text-emerald-500" : "text-rose-500")}>
+                {formatCurrency(profit)}
+              </span>
+            </div>
+
+            <div className="col-span-2 pt-6 border-t border-slate-100/50 mt-2">
+               <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] underline decoration-amber-200 underline-offset-4 leading-none">Total Receivable Valuation:</span>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Verified Digital Commercial Instrument</p>
+                  </div>
+                  <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none drop-shadow-sm">{formatCurrency(totalAmount)}</span>
+               </div>
+            </div>
           </div>
         </div>
       )}
 
-      <Button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white w-full" disabled={loading}>
-        {loading ? "Creating..." : "Create Bill"}
-      </Button>
+      <div className="flex gap-4 pt-2">
+         <Button type="submit" className="h-14 flex-1 gold-gradient hover:opacity-90 text-white font-black rounded-2xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs" disabled={loading}>
+          {loading ? "Processing..." : "Authorize & Generate Invoice"}
+        </Button>
+      </div>
     </form>
   );
 }

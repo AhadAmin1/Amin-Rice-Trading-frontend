@@ -1,355 +1,234 @@
-import { useEffect, useState } from 'react';
-import { Plus, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState, useEffect } from 'react';
+import { 
+  ShoppingBag, 
+  Plus, 
+  Receipt, 
+  TrendingUp, 
+  ChevronRight, 
+  Search,
+  LayoutDashboard
+} from 'lucide-react';
 import { dataStore } from '@/store/dataStore';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import type { Bill, Party, StockItem } from '@/types';
-import { CreateBillForm } from "./CreateBillForm";
-import { BillsTable } from "./BillsTable";
-import { BillView } from "./BillView";
+import { BillsTable } from './BillsTable';
+import { CreateBillForm } from './CreateBillForm';
+import { BillView } from './BillView';
+import { PaymentForm } from '../ledger/LedgerSystem';
 
-
-// ================= SALES BILLING MAIN =================
-export function SalesBilling() {
+export default function SalesBilling() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [stocks, setStocks] = useState<StockItem[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  // Modal States
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [viewBill, setViewBill] = useState<Bill | null>(null);
-  const [editBill, setEditBill] = useState<Bill | null>(null);
-  
-
-  // Load buyers, stocks, bills
-  useEffect(() => {
-    loadData();
-    const unsubscribe = dataStore.onUpdate(() => {
-      console.log("Real-time update triggered for SalesBilling");
-      loadData();
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // const loadData = async () => {
-  //   const [b, s] = await Promise.all([api.getParties(), api.getStocks()]);
-  //   setBuyers(b);
-  //   setStocks(s);
-  //   loadBills();
-  // };
+  const [showPayment, setShowPayment] = useState<Bill | null>(null);
 
   const loadData = async () => {
     try {
-      console.log("Loading data...");
-      const [partiesData, stocksData, billsData] = await Promise.all([
+      const [fetchedBills, fetchedParties, fetchedStocks] = await Promise.all([
+        dataStore.getBills(),
         dataStore.getParties(),
         dataStore.getStock(),
-        dataStore.getBills(),
       ]);
-
-      console.log("Fetched - Parties:", partiesData.length, "Stocks:", stocksData.length, "Bills:", billsData.length);
-      setParties(partiesData);
-      setStocks(stocksData);
-      setBills(billsData);
+      setBills(fetchedBills);
+      setParties(fetchedParties);
+      setStocks(fetchedStocks);
     } catch (err) {
-      console.error("Error loading data:", err);
+      console.error("Failed to load sales data:", err);
     }
   };
 
+  useEffect(() => {
+    loadData();
+    const unsubscribe = dataStore.onUpdate(loadData);
+    return () => unsubscribe();
+  }, []);
 
-
-
-  const loadBills = async () => {
-    const allBills = await dataStore.getBills();
-    setBills(allBills);
+  const stats = {
+    totalSales: bills.reduce((sum, b) => sum + b.totalAmount, 0),
+    totalReceived: bills.reduce((sum, b) => sum + (b.paidAmount || 0), 0),
+    pendingReceivables: bills.reduce((sum, b) => sum + (b.totalAmount - (b.paidAmount || 0)), 0),
+    totalInvoices: bills.length,
   };
 
-  const handleDeleteBill = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this bill?")) return;
-
-    try {
-      await dataStore.deleteBill(id);
-      loadBills();
-      alert("Bill deleted successfully");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete bill");
-    }
-  };
-
-  // const handleUpdateBill = async (id: string, data: any) => {
-  //   try {
-  //     await api.updateBill(id, data);
-  //     loadBills();
-  //     alert("Bill updated successfully");
-  //   } catch (err) {
-  //     console.error(err);
-  //     alert("Failed to update bill");
-  //   }
-  // };
-
-
-  const filteredBills = bills.filter(
-    b =>
-      (b.billNumber || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (b.buyerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (b.itemName || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // const handleDeleteBill = async (id: string) => {
-  //   if (!confirm('Are you sure you want to delete this bill?')) return;
-  //   await api.deleteBill(id);
-  //   loadBills();
-  // };
-
-  const handleWhatsAppShare = (bill: Bill) => {
-    const buyer = parties.find(p => p.id === bill.buyerId);
-    const phone = buyer?.phone || '';
-    const message = `*INVOICE: ${bill.billNumber}*\n\n` +
-      `Dear *${bill.buyerName}*,\n` +
-      `Your bill for *${bill.itemName}* has been generated.\n\n` +
-      `*Details:*\n` +
-      `- Quantity: ${bill.katte} Katte\n` +
-      `- Total Amount: ${new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(bill.totalAmount)}\n\n` +
-      `Thank you for your business!`;
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  const formatCurrency = (amount: number) => {
+    return `RS ${new Intl.NumberFormat('en-PK', {
+      maximumFractionDigits: 0,
+    }).format(amount)}`;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Sales & Billing</h2>
-          <p className="text-slate-500 mt-1">Create and manage sales bills</p>
+    <div className="space-y-6 pb-10">
+      {/* Premium Header */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 bg-white/40 p-6 rounded-2xl border border-white/20 backdrop-blur-sm shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-8 w-1 bg-amber-500 rounded-full" />
+            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest leading-none">Commercial Division</span>
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sales & <span className="text-gold">Billing</span></h2>
+          <p className="text-slate-500 font-medium mt-1">Generate premium invoices and track buyer receivables in real-time.</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-amber-500 hover:bg-amber-600 text-white">
-              <Plus className="h-4 w-4 mr-2" /> Create Bill
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Create New Bill</DialogTitle>
-            </DialogHeader>
-            <CreateBillForm
-              parties={parties}
-              stocks={stocks}
-              onSuccess={bill => {
-                setIsAddDialogOpen(false);
-                loadData();
-                setViewBill(bill);
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        
+        <div className="flex items-center gap-3 relative z-10">
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button className="h-14 gold-gradient hover:opacity-90 text-white font-bold px-8 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center gap-3">
+                <Plus className="h-5 w-5" />
+                <span className="uppercase tracking-widest text-xs">New Invoice</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl p-0">
+               <div className="bg-slate-900 p-6 text-white">
+                  <DialogTitle className="text-2xl font-bold tracking-tight uppercase">Invoice Authorization</DialogTitle>
+                  <DialogDescription className="text-slate-400 text-sm mt-1">Configure fresh dispatch and generate commercial bill.</DialogDescription>
+               </div>
+               <div className="p-6 bg-white">
+                <CreateBillForm 
+                  parties={parties} 
+                  stocks={stocks} 
+                  onSuccess={() => setIsCreateOpen(false)} 
+                />
+               </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="all">All Bills</TabsTrigger>
-          <TabsTrigger value="today">Today's Bills</TabsTrigger>
-        </TabsList>
+      {/* Stats Quick Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[
+          { label: 'Market Valuation', value: formatCurrency(stats.totalSales), icon: TrendingUp, color: 'amber' },
+          { label: 'Capital Recovered', value: formatCurrency(stats.totalReceived), icon: ShoppingBag, color: 'emerald' },
+          { label: 'Outbound Debt', value: formatCurrency(stats.pendingReceivables), icon: Receipt, color: 'rose' },
+          { label: 'Active Invoices', value: stats.totalInvoices, icon: LayoutDashboard, color: 'slate' },
+        ].map((item, i) => (
+          <Card key={i} className="glass-card border-white/50 group hover:border-amber-500/30 transition-all duration-500 overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-2xl bg-${item.color}-50 text-${item.color}-600 group-hover:scale-110 transition-transform duration-500 shadow-inner`}>
+                  <item.icon className="h-5 w-5" />
+                </div>
+                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center">
+                   <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                </div>
+              </div>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{item.label}</p>
+              <h3 className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{item.value}</h3>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
-        <TabsContent value="all" className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search by bill number, buyer, or item..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      {/* Main Billing Interface */}
+      <div className="glass-card rounded-2xl border-white/50 shadow-sm overflow-hidden min-h-[500px]">
+        <Tabs 
+          defaultValue={localStorage.getItem('sales_tab') || "all"} 
+          onValueChange={(val) => localStorage.setItem('sales_tab', val)} 
+          className="w-full"
+        >
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 gap-6 border-b border-slate-100">
+            <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-200/50 backdrop-blur-sm">
+              <TabsTrigger 
+                value="all" 
+                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Global Registry
+              </TabsTrigger>
+              <TabsTrigger 
+                value="unpaid" 
+                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Outstanding
+              </TabsTrigger>
+              <TabsTrigger 
+                value="paid" 
+                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Settled Invoices
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="relative w-full lg:max-w-md group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+              <Input
+                placeholder="Search index by party name or invoice #..."
+                className="pl-12 h-14 bg-white/70 backdrop-blur-md border-amber-100/50 rounded-2xl shadow-sm focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700"
+              />
+            </div>
           </div>
-          <BillsTable
-            bills={filteredBills}
-            onView={setViewBill}
-            onEdit={setEditBill}
-            onDelete={handleDeleteBill}
-            onWhatsApp={handleWhatsAppShare}
-          />
-        </TabsContent>
 
-        <TabsContent value="today" className="space-y-4">
-          <BillsTable
-            bills={bills.filter(b => b.date === new Date().toISOString().split('T')[0])}
-            onView={setViewBill}
-            onEdit={setEditBill}
-            onDelete={handleDeleteBill}
-            onWhatsApp={handleWhatsAppShare}
-          />
-        </TabsContent>
-      </Tabs>
+          <div className="p-2">
+            <TabsContent value="all" className="m-0 focus-visible:outline-none focus-visible:ring-0">
+              <BillsTable 
+                bills={bills} 
+                onView={setViewBill} 
+                onEdit={() => {}} 
+                onDelete={(id) => dataStore.deleteBill(id)}
+                onWhatsApp={(bill) => setViewBill(bill)}
+                onPayment={setShowPayment} 
+              />
+            </TabsContent>
+            <TabsContent value="unpaid" className="m-0 focus-visible:outline-none focus-visible:ring-0">
+              <BillsTable 
+                bills={bills.filter(b => b.status !== 'paid')} 
+                onView={setViewBill} 
+                onEdit={() => {}} 
+                onDelete={(id) => dataStore.deleteBill(id)}
+                onWhatsApp={(bill) => setViewBill(bill)}
+                onPayment={setShowPayment} 
+              />
+            </TabsContent>
+            <TabsContent value="paid" className="m-0 focus-visible:outline-none focus-visible:ring-0">
+              <BillsTable 
+                bills={bills.filter(b => b.status === 'paid')} 
+                onView={setViewBill} 
+                onEdit={() => {}} 
+                onDelete={(id) => dataStore.deleteBill(id)}
+                onWhatsApp={(bill) => setViewBill(bill)}
+                onPayment={() => {}} 
+              />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
 
+      {/* Global Invoice View Portal */}
       <Dialog open={!!viewBill} onOpenChange={() => setViewBill(null)}>
-        <DialogContent className="w-full max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Bill Details</DialogTitle>
-          </DialogHeader>
-          {viewBill && <BillView bill={viewBill} />}
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] border-none shadow-2xl p-0 bg-slate-50/50 backdrop-blur-2xl">
+          <div className="p-6">
+            <DialogTitle className="sr-only">Document View</DialogTitle>
+            <DialogDescription className="sr-only">Detailed view of the selected invoice.</DialogDescription>
+            {viewBill && <BillView bill={viewBill} />}
+          </div>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editBill} onOpenChange={() => setEditBill(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Bill</DialogTitle>
-          </DialogHeader>
-          {editBill && (
-            <EditBillForm
-              bill={editBill}
-              parties={parties}
-              stocks={stocks}
-              onSuccess={() => {
-                loadBills();
-                setEditBill(null);
-              }}
-            />
-          )}
+      {/* Global Payment Portal */}
+      <Dialog open={!!showPayment} onOpenChange={() => setShowPayment(null)}>
+        <DialogContent className="max-w-lg rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
+           <div className="bg-slate-900 p-6 text-white">
+             <DialogTitle className="text-2xl font-black tracking-tight uppercase">Payment Reconciliation</DialogTitle>
+             <DialogDescription className="text-slate-400 text-sm mt-1">Settle outstanding balances for {showPayment?.buyerName}.</DialogDescription>
+           </div>
+          <div className="p-6 bg-white">
+            {showPayment && parties.find(p => p.id === showPayment.buyerId) && (
+              <PaymentForm 
+                party={parties.find(p => p.id === showPayment.buyerId)!}
+                onSuccess={() => setShowPayment(null)}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
-// ================= EDIT BILL FORM =================
-function EditBillForm({
-  bill,
-  parties,
-  stocks,
-  onSuccess,
-}: {
-  bill: Bill;
-  parties: Party[];
-  stocks: StockItem[];
-  onSuccess: () => void;
-}) {
-  const [formData, setFormData] = useState({
-    date: bill.date,
-    buyerId: bill.buyerId,
-    stockId: bill.stockId,
-    katte: bill.katte.toString(),
-    rate: bill.rate.toString(),
-    bhardanaRate: (bill.bhardanaRate || 0).toString(),
-    rateType: bill.rateType,
-  });
-
-  const selectedStock = stocks.find(s => s.id === formData.stockId);
-  const enteredKatte = Number(formData.katte) || 0;
-  const maxAllowedKatte = selectedStock?.remainingKatte ?? 0;
-  const isKatteInvalid = enteredKatte <= 0 || enteredKatte > maxAllowedKatte;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedStock || isKatteInvalid) return;
-
-    const katte = Number(formData.katte);
-    const totalWeight = katte * selectedStock.weightPerKatta;
-    const rate = Number(formData.rate);
-    const bhardanaRate = Number(formData.bhardanaRate) || 0;
-    const bhardana = katte * bhardanaRate;
-    
-    const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
-    const totalAmount = rawAmount + bhardana;
-    
-    const costPerKg = selectedStock.totalAmount / selectedStock.totalWeight;
-    const purchaseCost = totalWeight * costPerKg;
-    const profit = totalAmount - purchaseCost;
-
-    try {
-      await dataStore.updateBill(bill.id, {
-        date: formData.date,
-        buyerId: formData.buyerId,
-        stockId: formData.stockId,
-        katte,
-        weight: totalWeight,
-        rate,
-        bhardanaRate,
-        bhardana,
-        rateType: formData.rateType as any,
-        totalAmount,
-        purchaseCost,
-        profit
-      });
-      onSuccess();
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update bill");
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <Input
-          type="date"
-          value={formData.date}
-          onChange={e => setFormData({ ...formData, date: e.target.value })}
-        />
-        <Select 
-          value={formData.buyerId}
-          onValueChange={value => setFormData({ ...formData, buyerId: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select buyer" />
-          </SelectTrigger>
-          <SelectContent>
-            {parties.map(b => <SelectItem key={b.id} value={b.id}>{b.name} ({b.type})</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select 
-          value={formData.stockId}
-          onValueChange={value => setFormData({ ...formData, stockId: value })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select stock" />
-          </SelectTrigger>
-          <SelectContent>
-            {stocks.map(s => <SelectItem key={s.id} value={s.id}>{s.itemName}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Input
-          type="number"
-          placeholder="Katte"
-          value={formData.katte}
-          onChange={e => setFormData({ ...formData, katte: e.target.value })}
-        />
-        <Input
-          type="number"
-          placeholder="Rate"
-          value={formData.rate}
-          onChange={e => setFormData({ ...formData, rate: e.target.value })}
-        />
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] text-slate-500 ml-1">Bhardana (Packaging)</Label>
-          <Input
-            type="number"
-            placeholder="Bhardana Rate"
-            value={formData.bhardanaRate}
-            onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })}
-          />
-        </div>
-        <Select
-          value={formData.rateType}
-          onValueChange={value => setFormData({ ...formData, rateType: value as 'per_kg' | 'per_katta' })}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select rate type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="per_kg">Per Kg</SelectItem>
-            <SelectItem value="per_katta">Per Katta</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Button type="submit" className="bg-amber-500 hover:bg-amber-600 text-white w-full" disabled={isKatteInvalid}>
-        Save Changes
-      </Button>
-    </form>
-  );
-}
-

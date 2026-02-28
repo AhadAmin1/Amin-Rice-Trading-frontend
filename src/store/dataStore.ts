@@ -23,6 +23,9 @@ const fetchJson = async (url: string, options?: RequestInit) => {
       ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         ...options?.headers,
       },
     });
@@ -70,8 +73,14 @@ class DataStore {
     };
   }
 
+  private updateTimer: any = null;
   private notifyUpdate() {
-    this.updateListeners.forEach(l => l());
+    if (this.updateTimer) clearTimeout(this.updateTimer);
+    this.updateTimer = setTimeout(() => {
+      console.log("Global data update notification triggered");
+      this.updateListeners.forEach(l => l());
+      this.updateTimer = null;
+    }, 100);
   }
 
   setLoading(loading: boolean) {
@@ -275,35 +284,24 @@ class DataStore {
   // But given constraints, I'll implement them as client-side orchestration for now, 
   // or better: Use `addLedgerEntry` (which modifies ledger) and `addCashEntry` (which modifies cash).
   
-  async payMiller(millerId: string, amount: number, date: string, description: string): Promise<void> {
+  async payMiller(amount: number, date: string, description: string, receiptNo?: string): Promise<void> {
+      // Logic: Only add to Cash Book. Backend "Smart Linking" handles the Ledger.
+      const linkRef = receiptNo || (description.match(/#?(S-\d+)/i)?.[1]);
       await this.addCashEntry({
           date,
-          description: `Payment to - ${description}`, // need miller name? fetch miller first?
-          debit: 0,
-          credit: amount
-      });
-      await this.addLedgerEntry({
-          partyId: millerId,
-          date,
-          particulars: description,
-          debit: 0,
-          credit: amount,
-          // remaining fields handled by backend?
-          // Backend expects partyId, date, particulars... and debit/credit.
+          type: 'out',
+          description: `${description} ${linkRef ? `#${linkRef}` : ''}`.trim(),
+          debit: amount,
+          credit: 0,
       });
   }
 
-  async receiveFromBuyer(buyerId: string, amount: number, date: string, description: string): Promise<void> {
+  async receiveFromBuyer(amount: number, date: string, description: string, billNo?: string): Promise<void> {
+      const linkRef = billNo || (description.match(/#?(B-\d+)/i)?.[1]);
       await this.addCashEntry({
           date,
-          description: `Received from - ${description}`,
-          debit: amount,
-          credit: 0
-      });
-       await this.addLedgerEntry({
-          partyId: buyerId,
-          date,
-          particulars: description,
+          type: 'in',
+          description: `${description} ${linkRef ? `#${linkRef}` : ''}`.trim(),
           debit: 0,
           credit: amount
       });

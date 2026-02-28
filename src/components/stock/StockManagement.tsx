@@ -1,26 +1,32 @@
 import { useEffect, useState } from 'react';
-import { Plus, Search, Package, Eye, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Package, TrendingUp, Wallet, ArrowUpRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { dataStore } from '@/store/dataStore';
 import type { StockItem, Bill } from '@/types';
 import EditStockForm from "@/components/editStockForm";
 import { ReceiptView } from "./ReceiptView";
+import { DirectPaymentDialog } from "@/components/DirectPaymentDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StockTable } from './StockTable';
 
 export function StockManagement() {
   const [stock, setStock] = useState<StockItem[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingStock, setEditingStock] = useState<StockItem | null>(null);
+  const [editingStockId, setEditingStockId] = useState<string | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [selectedStockReceipt, setSelectedStockReceipt] = useState<StockItem | null>(null);
+  const [selectedStockReceiptId, setSelectedStockReceiptId] = useState<string | null>(null);
+  const [paymentStockId, setPaymentStockId] = useState<string | null>(null);
+
+  const editingStock = stock.find(s => s.id === editingStockId) || null;
+  const selectedStockReceipt = stock.find(s => s.id === selectedStockReceiptId) || null;
+  const paymentStock = stock.find(s => s.id === paymentStockId) || null;
 
   useEffect(() => {
     loadStock();
@@ -46,12 +52,6 @@ export function StockManagement() {
     setBills(data);
   };
 
-  const formatCurrency = (amount: number) => {
-    return `RS ${new Intl.NumberFormat('en-PK', {
-      maximumFractionDigits: 2,
-    }).format(amount)}`;
-  };
-
   const filteredStock = stock.filter(item => 
     (item.itemName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (item.millerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -59,199 +59,132 @@ export function StockManagement() {
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Stock / Maal Book</h2>
-          <p className="text-slate-500 text-sm">Manage your inventory and miller purchases</p>
+    <div className="space-y-6 pb-10">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 bg-white/40 p-6 rounded-2xl border border-white/20 backdrop-blur-sm shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/20 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-8 w-1 bg-amber-500 rounded-full" />
+            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest leading-none">Inventory Management</span>
+          </div>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Stock / <span className="text-gold">Maal Book</span></h2>
+          <p className="text-slate-500 font-medium mt-1">Institutional grade warehouse & miller purchase control.</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100 transition-all active:scale-95">
-              <Plus className="h-4 w-4 mr-2" />
-              Add New Stock
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Add New Stock Entry</DialogTitle>
-              <p className="text-sm text-slate-500">Enter purchase details to update inventory and miller ledger.</p>
-            </DialogHeader>
-            <AddStockForm onSuccess={(newStock) => {
-              setIsAddDialogOpen(false);
-              loadStock();
-              if (newStock) setSelectedStockReceipt(newStock);
-            }} />
-          </DialogContent>
-        </Dialog>
+        
+        <div className="flex items-center gap-3 relative z-10">
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="gold-gradient hover:opacity-90 text-white font-bold h-12 px-8 rounded-2xl shadow-lg border-none transition-all active:scale-95 group">
+                <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                Add New Inventory
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl">
+              <DialogHeader>
+                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">New Purchase Entry</DialogTitle>
+                <DialogDescription className="text-sm font-medium text-slate-500 italic">
+                  Record new stock arrivals from millers to synchronize inventory and khata.
+                </DialogDescription>
+              </DialogHeader>
+              <AddStockForm onSuccess={(stockItem: StockItem) => {
+                setIsAddDialogOpen(false);
+                loadStock();
+                if (stockItem) setSelectedStockReceiptId(stockItem.id);
+              }} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <StatsCards stock={stock} />
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-slate-50/50">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search stock, millers, or receipt #..."
-              className="pl-9 bg-white border-slate-200"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Filter & View Controls */}
+      <div className="space-y-4">
+        <Tabs 
+          defaultValue={localStorage.getItem('stock_tab') || "all"} 
+          onValueChange={(val) => localStorage.setItem('stock_tab', val)} 
+          className="w-full"
+        >
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2">
+            <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-200/50 backdrop-blur-sm">
+              <TabsTrigger 
+                value="all" 
+                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                Comprehensive View
+              </TabsTrigger>
+              <TabsTrigger 
+                value="available" 
+                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+              >
+                In-Stock Only
+              </TabsTrigger>
+            </TabsList>
+            
+            <div className="relative w-full lg:max-w-md group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
+              <Input
+                placeholder="Search inventory, millers, or official receipt numbers..."
+                className="pl-12 h-14 bg-white/70 backdrop-blur-md border-amber-100/50 rounded-2xl shadow-sm focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50/50 border-b hover:bg-transparent">
-                <TableHead className="w-[120px] font-bold text-slate-700">Date</TableHead>
-                <TableHead className="font-bold text-slate-700">Receipt #</TableHead>
-                <TableHead className="font-bold text-slate-700">Miller</TableHead>
-                <TableHead className="font-bold text-slate-700">Item</TableHead>
-                <TableHead className="text-right font-bold text-slate-700">Katte</TableHead>
-                <TableHead className="text-right font-bold text-slate-700">Weight</TableHead>
-                <TableHead className="text-right font-bold text-slate-700">Rate</TableHead>
-                <TableHead className="text-right font-bold text-slate-700">Bhardana</TableHead>
-                <TableHead className="text-right font-bold text-slate-700">Amount</TableHead>
-                <TableHead className="font-bold text-slate-700">Sold To</TableHead>
-                <TableHead className="text-center font-bold text-slate-700">Status</TableHead>
-                <TableHead className="text-right font-bold text-slate-700 pr-6">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStock.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={12} className="h-48 text-center text-slate-500">
-                    <Package className="h-12 w-12 mx-auto mb-3 text-slate-300" />
-                    <p className="font-medium">No stock entries found</p>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredStock
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .map((item) => (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-medium text-slate-600">{item.date}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs border-blue-200 bg-blue-50 text-blue-700">
-                          {item.receiptNumber}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-bold text-slate-900">
-                        <span 
-                          className="cursor-pointer hover:text-blue-600 hover:underline decoration-blue-400 underline-offset-4"
-                          onClick={() => (window as any).onNavigate('party-ledger', item.millerId)}
-                        >
-                          {item.millerName}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-700">{item.itemName}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-bold text-slate-900">{item.katte}</div>
-                        <div className="text-[10px] text-slate-400 font-medium uppercase">Katte</div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-bold text-slate-900">{item.totalWeight}</div>
-                        <div className="text-[10px] text-slate-400 font-medium uppercase">kg</div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="font-bold text-slate-900">{formatCurrency(item.purchaseRate)}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">/{item.rateType === 'per_kg' ? 'kg' : 'katta'}</div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium text-slate-600">
-                        {formatCurrency(item.bhardana || 0)}
-                      </TableCell>
-                      <TableCell className="text-right font-black text-slate-900">
-                        {formatCurrency(item.totalAmount)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {bills
-                            .filter((b) => b.stockId === item.id)
-                            .map((b) => (
-                              <Badge
-                                key={b.id}
-                                variant="outline"
-                                className="cursor-pointer hover:bg-blue-50 text-blue-600 border-blue-200 text-[10px] py-0 px-1"
-                                onClick={() => (window as any).onNavigate('party-ledger', b.buyerId)}
-                              >
-                                {b.buyerName}
-                              </Badge>
-                            ))}
-                          {bills.filter((b) => b.stockId === item.id).length === 0 && (
-                            <span className="text-slate-400 text-xs italic">Not sold yet</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          {item.status === 'paid' ? (
-                            <Badge className="bg-green-500 hover:bg-green-600 border-0 shadow-sm shadow-green-100">Paid</Badge>
-                          ) : item.status === 'partial' ? (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] py-0 px-1 font-bold">Partial</Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-slate-400 text-[10px] py-0 px-1 border-slate-200 font-bold">Unpaid</Badge>
-                          )}
-                          {item.remainingKatte === 0 && (
-                            <div className="text-[9px] text-slate-400 mt-0.5 uppercase font-bold tracking-tighter">Sold Out</div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex justify-end gap-1">
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8 text-blue-600 hover:bg-blue-50 transition-colors"
-                            onClick={() => setSelectedStockReceipt(item)}
-                            title="View Receipt"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-amber-600 hover:bg-amber-50"
-                            onClick={() => {
-                              setEditingStock(item);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-red-600 hover:bg-red-50"
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to delete this stock?')) {
-                                await dataStore.deleteStock(item.id);
-                                loadStock();
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+          <div className="glass-card rounded-2xl mt-6 border-amber-100/30 overflow-hidden shadow-2xl">
+            <TabsContent value="all" className="m-0">
+               <StockTable 
+                  stock={filteredStock}
+                  bills={bills}
+                  onView={setSelectedStockReceiptId}
+                  onEdit={(id) => {
+                      setEditingStockId(id);
+                      setIsEditDialogOpen(true);
+                  }}
+                  onDelete={async (id) => {
+                      if (confirm('Are you sure you want to delete this stock?')) {
+                          await dataStore.deleteStock(id);
+                          loadStock();
+                      }
+                  }}
+                  onPayment={setPaymentStockId}
+                  onNavigateParty={(id) => (window as any).onNavigate('party-ledger', id)}
+               />
+            </TabsContent>
+            
+            <TabsContent value="available" className="m-0">
+               <StockTable 
+                  stock={filteredStock.filter(s => s.remainingKatte > 0)}
+                  bills={bills}
+                  onView={setSelectedStockReceiptId}
+                  onEdit={(id) => {
+                      setEditingStockId(id);
+                      setIsEditDialogOpen(true);
+                  }}
+                  onDelete={async (id) => {
+                      if (confirm('Are you sure you want to delete this stock?')) {
+                          await dataStore.deleteStock(id);
+                          loadStock();
+                      }
+                  }}
+                  onPayment={setPaymentStockId}
+                  onNavigateParty={(id) => (window as any).onNavigate('party-ledger', id)}
+               />
+            </TabsContent>
+          </div>
+        </Tabs>
       </div>
 
       {/* View Receipt Dialog */}
-      <Dialog open={!!selectedStockReceipt} onOpenChange={() => setSelectedStockReceipt(null)}>
-        <DialogContent className="max-w-xl overflow-y-auto max-h-[95vh] p-0 border-none shadow-2xl bg-white">
+      <Dialog open={!!selectedStockReceiptId} onOpenChange={(open) => !open && setSelectedStockReceiptId(null)}>
+        <DialogContent className="max-w-xl overflow-y-auto max-h-[95vh] p-0 border-none shadow-2xl bg-white rounded-2xl">
           <DialogHeader className="sr-only">
              <DialogTitle>Stock Receipt</DialogTitle>
-             <p className="text-sm text-slate-500">Miller purchase receipt details.</p>
+             <DialogDescription>Miller purchase receipt details.</DialogDescription>
           </DialogHeader>
-          <div className="p-6 bg-white rounded-xl">
+          <div className="p-6 bg-white rounded-2xl">
              {selectedStockReceipt && <ReceiptView stock={selectedStockReceipt} />}
           </div>
         </DialogContent>
@@ -260,22 +193,38 @@ export function StockManagement() {
       {/* Edit Stock Dialog */}
       {editingStock && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Edit Stock Entry</DialogTitle>
-              <p className="text-sm text-slate-500">Modify existing stock records carefully.</p>
+              <DialogTitle className="text-2xl font-black text-slate-900">Edit Inventory Record</DialogTitle>
+              <DialogDescription className="text-sm font-medium text-slate-500 italic">
+                Adjust stock details with extreme caution.
+              </DialogDescription>
             </DialogHeader>
             <EditStockForm
               stock={editingStock}
               onSuccess={() => {
                 setIsEditDialogOpen(false);
-                setEditingStock(null);
+                setEditingStockId(null);
                 loadStock();
               }}
             />
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Payment Dialog */}
+      <DirectPaymentDialog
+        open={!!paymentStockId}
+        onOpenChange={(open) => !open && setPaymentStockId(null)}
+        type="pay"
+        item={paymentStock}
+        partyId={paymentStock?.millerId || ''}
+        partyName={paymentStock?.millerName || ''}
+        onSuccess={() => {
+          loadStock();
+          loadBills();
+        }}
+      />
     </div>
   );
 }
@@ -287,51 +236,68 @@ function StatsCards({ stock }: { stock: StockItem[] }) {
     }).format(amount)}`;
   };
 
+  const totalKatte = stock.reduce((sum, s) => sum + (s.katte || 0), 0);
+  const remainingKatte = stock.reduce((sum, s) => sum + (s.remainingKatte || 0), 0);
+  const totalPurchases = stock.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
+  const totalPaid = stock.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+  const totalBalance = totalPurchases - totalPaid;
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <Card className="border-slate-200 shadow-sm overflow-hidden group hover:border-amber-200 transition-colors">
-        <CardHeader className="pb-2 bg-slate-50/50">
-          <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Total Inventory</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="text-3xl font-black text-slate-900 tracking-tight">
-            {stock.reduce((sum, s) => sum + (s.remainingKatte || 0), 0)}
-            <span className="text-sm font-bold text-slate-400 ml-2 uppercase">Katte</span>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
+        <div className="flex items-center justify-between mb-6">
+          <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-600 group-hover:gold-gradient group-hover:text-white transition-all duration-700 shadow-inner">
+            <Package className="h-7 w-7" />
           </div>
-          <p className="text-xs text-slate-500 mt-2 font-medium">
-            Across {stock.length} millers / batches
-          </p>
-        </CardContent>
-      </Card>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Institutional Stock</span>
+        </div>
+        <div className="space-y-2">
+          <h4 className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">{remainingKatte}</h4>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Global Pool: {totalKatte} KT</p>
+        </div>
+      </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden group hover:border-blue-200 transition-colors">
-        <CardHeader className="pb-2 bg-slate-50/50">
-          <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Net Weight</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="text-3xl font-black text-slate-900 tracking-tight text-blue-600">
+      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
+        <div className="flex items-center justify-between mb-6">
+          <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-700 shadow-inner">
+            <TrendingUp className="h-7 w-7" />
+          </div>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Net Tonnage</span>
+        </div>
+        <div className="space-y-2">
+          <h4 className="text-4xl font-black text-blue-600 tracking-tighter tabular-nums drop-shadow-sm">
             {stock.reduce((sum, s) => sum + (s.remainingWeight || 0), 0).toLocaleString()}
-            <span className="text-sm font-bold text-slate-400 ml-2 uppercase">kg</span>
-          </div>
-          <p className="text-xs text-slate-500 mt-2 font-medium italic">
-            Ready for sale
-          </p>
-        </CardContent>
-      </Card>
+            <span className="text-sm ml-2 text-slate-400 font-black uppercase">KG</span>
+          </h4>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Active Mass Volume</p>
+        </div>
+      </div>
 
-      <Card className="border-slate-200 shadow-sm overflow-hidden group hover:border-green-200 transition-colors">
-        <CardHeader className="pb-2 bg-slate-50/50">
-          <CardTitle className="text-sm font-bold text-slate-500 uppercase tracking-wider">Estimated Value</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="text-3xl font-black text-slate-900 tracking-tight text-green-600">
-            {formatCurrency(stock.reduce((sum, s) => sum + ((s.remainingKatte || 0) * s.totalAmount / s.katte), 0))}
+      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
+        <div className="flex items-center justify-between mb-6">
+          <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-700 shadow-inner">
+            <Wallet className="h-7 w-7" />
           </div>
-          <p className="text-xs text-slate-500 mt-2 font-medium">
-            Based on average purchase rates
-          </p>
-        </CardContent>
-      </Card>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Direct Outflow</span>
+        </div>
+        <div className="space-y-2">
+          <h4 className="text-4xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalPaid)}</h4>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Audit Cleared Amount</p>
+        </div>
+      </div>
+
+      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
+        <div className="flex items-center justify-between mb-6">
+          <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all duration-700 shadow-inner">
+            <ArrowUpRight className="h-7 w-7" />
+          </div>
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Liabilities</span>
+        </div>
+        <div className="space-y-2">
+          <h4 className="text-4xl font-black text-rose-600 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalBalance)}</h4>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Outstanding Debt Portfolio</p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -343,12 +309,12 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
   useEffect(() => {
     dataStore.getParties().then(setParties);
     dataStore.getStock().then(stocks => {
-      const lastRcp = stocks.find(s => s.receiptNumber?.startsWith('RCP-'));
-      let hint = 'RCP-0001';
+      const lastRcp = stocks.find(s => s.receiptNumber?.startsWith('S-'));
+      let hint = 'S-101';
       if (lastRcp) {
         const num = lastRcp.receiptNumber.match(/\d+$/);
         if (num) {
-          hint = `RCP-${(parseInt(num[0]) + 1).toString().padStart(4, '0')}`;
+          hint = `S-${(parseInt(num[0]) + 1)}`;
         }
       }
       setNextReceiptHint(hint);
@@ -367,6 +333,8 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
     bhardanaRate: '',
     rateType: 'per_kg' as 'per_kg' | 'per_katta',
     receiptNumber: '',
+    paymentType: 'cash' as 'cash' | 'credit',
+    dueDays: '0',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -384,6 +352,9 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
       ? totalWeight * purchaseRate 
       : katte * purchaseRate;
 
+    const days = formData.paymentType === 'credit' ? Number(formData.dueDays) : 3;
+    const dueDate = new Date(new Date(formData.date).getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
     const newStock = await dataStore.addStock({
       date: formData.date,
       millerId: miller.id,
@@ -397,38 +368,53 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
       totalAmount,
       bhardanaRate: Number(formData.bhardanaRate) || 0,
       bhardana: katte * (Number(formData.bhardanaRate) || 0),
-      receiptNumber: formData.receiptNumber || undefined,
+      receiptNumber: formData.receiptNumber || nextReceiptHint || undefined,
+      paymentType: formData.paymentType,
+      dueDays: days,
+      dueDate,
     } as any);
 
     onSuccess(newStock);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="space-y-6 pt-4">
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="date">Date *</Label>
+          <Label htmlFor="date" className="text-xs font-black uppercase text-slate-500 ml-1">Arrival Date</Label>
           <Input
             id="date"
             type="date"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="miller">Miller *</Label>
+          <Label htmlFor="miller" className="text-xs font-black uppercase text-slate-500 ml-1">Miller / Party</Label>
           <Select 
             value={formData.millerId} 
             onValueChange={(value) => setFormData({ ...formData, millerId: value })}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Miller" />
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue placeholder="Select Miller source" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
               {parties.map((party) => (
-                <SelectItem key={party.id} value={party.id}>
-                  {party.name} ({party.type})
+                <SelectItem key={party.id} value={party.id} className="rounded-xl my-1 focus:bg-amber-50 focus:text-amber-700">
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{party.name}</span>
+                      <span className={cn(
+                        "text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter",
+                        party.type === 'Miller' ? "bg-blue-100 text-blue-700" : "bg-emerald-100 text-emerald-700"
+                      )}>
+                        {party.type}
+                      </span>
+                    </div>
+                    <span className="text-[10px] opacity-60 uppercase">{party.address || 'Standard Party'}</span>
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -437,33 +423,36 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="itemName">Item Name (Rice Type) *</Label>
+        <Label htmlFor="itemName" className="text-xs font-black uppercase text-slate-500 ml-1">Stock Description (Rice Type)</Label>
         <Input
           id="itemName"
-          placeholder="e.g., Basmati Rice, Sona Masoori"
+          placeholder="e.g., Basmati 1121 Sella, Super Kernel"
+          className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
           value={formData.itemName}
           onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
           required
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="receiptNumber">Receipt No (Optional)</Label>
+          <Label htmlFor="receiptNumber" className="text-xs font-black uppercase text-slate-500 ml-1">Receipt / Gate Pass #</Label>
           <Input
             id="receiptNumber"
-            placeholder={nextReceiptHint ? `Auto: ${nextReceiptHint}` : "Auto-generated"}
+            placeholder={nextReceiptHint ? `Suggested: ${nextReceiptHint}` : "Internal Ref"}
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold placeholder:text-slate-300"
             value={formData.receiptNumber}
             onChange={(e) => setFormData({ ...formData, receiptNumber: e.target.value })}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="katte">Number of Katte *</Label>
+          <Label htmlFor="katte" className="text-xs font-black uppercase text-slate-500 ml-1">Total Katte (Pcs)</Label>
           <Input
             id="katte"
             type="number"
             min="1"
-            placeholder="e.g., 100"
+            placeholder="0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.katte}
             onChange={(e) => setFormData({ ...formData, katte: e.target.value })}
             required
@@ -471,28 +460,30 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="weightPerKatta">Weight per Katta (kg) *</Label>
+          <Label htmlFor="weightPerKatta" className="text-xs font-black uppercase text-slate-500 ml-1">Avg Weight (kg)</Label>
           <Input
             id="weightPerKatta"
             type="number"
             min="0"
             step="any"
-            placeholder="e.g., 50.5"
+            placeholder="50.0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.weightPerKatta}
             onChange={(e) => setFormData({ ...formData, weightPerKatta: e.target.value })}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="purchaseRate">Purchase Rate (rs) *</Label>
+          <Label htmlFor="purchaseRate" className="text-xs font-black uppercase text-slate-500 ml-1">Sourcing Rate (Price)</Label>
           <Input
             id="purchaseRate"
             type="number"
             min="0"
             step="any"
-            placeholder="e.g., 40.5"
+            placeholder="0.00"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-amber-600"
             value={formData.purchaseRate}
             onChange={(e) => setFormData({ ...formData, purchaseRate: e.target.value })}
             required
@@ -500,72 +491,116 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="bhardanaRate">Bhardana (per Katta)</Label>
+          <Label htmlFor="bhardanaRate" className="text-xs font-black uppercase text-slate-500 ml-1">Bhardana / Bag Price</Label>
           <Input
             id="bhardanaRate"
             type="number"
             min="0"
             step="any"
-            placeholder="e.g., 20.5"
+            placeholder="Optional"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.bhardanaRate}
             onChange={(e) => setFormData({ ...formData, bhardanaRate: e.target.value })}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="rateType">Rate Type *</Label>
+          <Label htmlFor="rateType" className="text-xs font-black uppercase text-slate-500 ml-1">Calculation Metric</Label>
           <Select 
             value={formData.rateType} 
             onValueChange={(value: 'per_kg' | 'per_katta') => setFormData({ ...formData, rateType: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="per_kg">Per Kg</SelectItem>
-              <SelectItem value="per_katta">Per Katta</SelectItem>
+            <SelectContent className="rounded-2xl">
+              <SelectItem value="per_kg" className="rounded-xl my-1">Calculate Per KG</SelectItem>
+              <SelectItem value="per_katta" className="rounded-xl my-1">Calculate Per Katta</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* Preview */}
-      {formData.katte && formData.weightPerKatta && formData.purchaseRate && (
-        <div className="bg-amber-50 p-4 rounded-lg space-y-2 border border-amber-100">
-          <p className="text-sm font-semibold text-amber-900 border-b border-amber-200 pb-1 mb-2">
-            Stock Preview:
-          </p>
-          <div className="grid grid-cols-2 gap-y-2 text-sm text-amber-900">
-            <span>Receipt Number:</span>
-            <span className="text-right font-bold text-blue-700">{formData.receiptNumber || nextReceiptHint || 'Generating...'}</span>
+      <div className="grid grid-cols-2 gap-6 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 shadow-inner">
+        <div className="space-y-2">
+          <Label htmlFor="paymentType" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Condition</Label>
+          <Select 
+            value={formData.paymentType} 
+            onValueChange={(value: 'cash' | 'credit') => setFormData({ ...formData, paymentType: value })}
+          >
+            <SelectTrigger className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl shadow-2xl border-none">
+              <SelectItem value="cash" className="rounded-xl my-1">Immediate Cash</SelectItem>
+              <SelectItem value="credit" className="rounded-xl my-1">Credit (Udhar)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {formData.paymentType === 'credit' && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
+            <Label htmlFor="dueDays" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Term (Days)</Label>
+            <Input
+              id="dueDays"
+              type="number"
+              min="0"
+              placeholder="e.g. 15"
+              className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+              value={formData.dueDays}
+              onChange={(e) => setFormData({ ...formData, dueDays: e.target.value })}
+            />
+          </div>
+        )}
+      </div>
 
-            <span>Total Weight:</span>
-            <span className="text-right font-medium">{(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(2)} kg</span>
+      {/* Dynamic Summary Preview */}
+      <div className="premium-glass p-6 rounded-2xl border-white/20 shadow-inner group transition-all duration-700 hover:shadow-premium relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-1000" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
+            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Commercial Verification Hub</h5>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-y-6 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Tonnage Mass</span>
+              <span className="text-xl font-black text-slate-900 tracking-tighter">{(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(2)} KG</span>
+            </div>
             
-            <span>Bhardana (Packaging):</span>
-            <span className="text-right font-medium">
-              {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
-            </span>
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Packaging (Bhardana)</span>
+              <span className="text-xl font-black text-slate-900 tracking-tighter">
+                {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
+              </span>
+            </div>
 
-            <span>Total Amount (to Miller):</span>
-            <span className="text-right font-bold text-amber-700">
-              {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(
-                (formData.rateType === 'per_kg'
-                  ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
-                  : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.katte) * (Number(formData.bhardanaRate) || 0))
-              )}
-            </span>
+            <div className="col-span-2 pt-6 border-t border-slate-100 mt-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-1 block underline decoration-amber-200 underline-offset-4">Net Payable to Miller:</span>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">Institutional Rate: {formData.rateType === 'per_kg' ? 'BY WEIGHT' : 'BY UNIT'}</p>
+                </div>
+                <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none drop-shadow-sm">
+                  {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(
+                    (formData.rateType === 'per_kg'
+                      ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
+                      : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.katte) * (Number(formData.bhardanaRate) || 0))
+                  )}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
-      <div className="flex gap-3 pt-2">
-        <Button type="button" variant="outline" className="flex-1" onClick={() => onSuccess(null as any)}>
-          Cancel
+      <div className="flex gap-4 pt-4">
+        <Button type="button" variant="ghost" className="h-14 flex-1 rounded-2xl font-bold text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all uppercase tracking-widest text-[10px]" onClick={() => onSuccess(null as any)}>
+          Dismiss
         </Button>
-        <Button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-100">
-          Add Stock & View Receipt
+        <Button type="submit" className="h-14 flex-[2] gold-gradient hover:opacity-90 text-white font-black rounded-2xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs">
+          Confirm & Print Receipt
         </Button>
       </div>
     </form>
