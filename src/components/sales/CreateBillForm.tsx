@@ -11,21 +11,22 @@ import { cn } from "@/lib/utils";
 type CreateBillFormProps = {
   parties: Party[];
   stocks: StockItem[];
+  initialData?: Bill;
   onSuccess: (bill: Bill) => void;
 };
 
-export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormProps) {
+export function CreateBillForm({ parties, stocks, initialData, onSuccess }: CreateBillFormProps) {
   const [formData, setFormData] = useState({
-    buyerId: "",
-    stockId: "",
-    katte: "",
-    rate: "",
-    bhardanaRate: "",
-    rateType: "per_kg" as 'per_kg' | 'per_katta',
-    billNo: "",
-    paymentType: 'cash' as 'cash' | 'credit',
-    dueDays: '0',
-    date: new Date().toISOString().split('T')[0],
+    buyerId: initialData?.buyerId || "",
+    stockId: initialData?.stockId || "",
+    katte: initialData?.katte?.toString() || "",
+    rate: initialData?.rate?.toString() || "",
+    bhardanaRate: initialData?.bhardanaRate?.toString() || (initialData?.bhardana ? (initialData.bhardana / initialData.katte).toString() : ""),
+    rateType: initialData?.rateType || "per_kg" as 'per_kg' | 'per_katta',
+    billNo: initialData?.billNumber || "",
+    paymentType: initialData?.paymentType || 'cash' as 'cash' | 'credit',
+    dueDays: initialData?.dueDays?.toString() || '0',
+    date: initialData ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
   });
 
   const [loading, setLoading] = useState(false);
@@ -65,11 +66,13 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
       setFormData(prev => ({ ...prev, stockId: availableStocks[0].id }));
     }
 
-    // Fetch next bill number
-    dataStore.getNextBillNumber().then(num => {
-      setFormData(prev => ({ ...prev, billNo: num }));
-    });
-  }, [stocks]);
+    // Fetch next bill number only if not editing
+    if (!initialData) {
+      dataStore.getNextBillNumber().then(num => {
+        setFormData(prev => ({ ...prev, billNo: num }));
+      });
+    }
+  }, [stocks, initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,8 +89,9 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
       }
 
       const katte = Number(formData.katte);
-      if (katte > selectedStock.remainingKatte) {
-          alert("Insufficient stock in warehouse");
+      const katteDiff = initialData ? katte - initialData.katte : katte;
+      if (katteDiff > selectedStock.remainingKatte) {
+          alert("Insufficient stock in warehouse for this change");
           setLoading(false);
           return;
       }
@@ -106,7 +110,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
       const baseDate = new Date(formData.date);
       const dueDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      const bill = await dataStore.addBill({
+      const payload = {
         buyerId: formData.buyerId,
         buyerName: buyer.name,
         millerId: selectedStock.millerId,
@@ -128,7 +132,14 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
         paymentType: formData.paymentType,
         dueDays: days,
         dueDate,
-      } as any);
+      } as any;
+
+      let bill;
+      if (initialData) {
+        bill = await dataStore.updateBill(initialData.id, payload);
+      } else {
+        bill = await dataStore.addBill(payload);
+      }
 
       onSuccess(bill);
     } catch (err: any) {
@@ -351,7 +362,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
 
       <div className="flex gap-4 pt-2">
          <Button type="submit" className="h-14 flex-1 gold-gradient hover:opacity-90 text-white font-black rounded-2xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs" disabled={loading}>
-          {loading ? "Processing..." : "Create Bill"}
+          {loading ? "Processing..." : (initialData ? "Update Invoice" : "Create Invoice")}
         </Button>
       </div>
     </form>

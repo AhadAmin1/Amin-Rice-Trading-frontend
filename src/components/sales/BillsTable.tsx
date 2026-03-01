@@ -23,7 +23,7 @@ import { History } from "lucide-react";
 import { useEffect, useState } from "react";
 import { dataStore } from "@/store/dataStore";
 
-export function BillsTable({ bills, onView, onDelete, onWhatsApp, onPayment }: Props) {
+export function BillsTable({ bills, onView, onEdit, onDelete, onWhatsApp, onPayment }: Props) {
   const formatCurrency = (amount: number) => {
     return `RS ${new Intl.NumberFormat('en-PK', {
       maximumFractionDigits: 0,
@@ -196,6 +196,18 @@ export function BillsTable({ bills, onView, onDelete, onWhatsApp, onPayment }: P
                         title="View Invoice"
                       >
                         <Eye className="h-4 w-4" />
+                      </Button>
+
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-9 w-9 border border-amber-200 text-amber-600 hover:bg-amber-50"
+                        onClick={() => onEdit(bill)}
+                        title="Edit Invoice"
+                      >
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
                       </Button>
                       
                       <Button 

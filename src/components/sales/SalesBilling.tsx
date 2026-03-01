@@ -27,6 +27,7 @@ export default function SalesBilling() {
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editBill, setEditBill] = useState<Bill | null>(null);
   const [viewBill, setViewBill] = useState<Bill | null>(null);
   const [showPayment, setShowPayment] = useState<Bill | null>(null);
 
@@ -165,7 +166,7 @@ export default function SalesBilling() {
               <BillsTable 
                 bills={bills} 
                 onView={setViewBill} 
-                onEdit={() => {}} 
+                onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
                 onWhatsApp={(bill) => setViewBill(bill)}
                 onPayment={setShowPayment} 
@@ -175,7 +176,7 @@ export default function SalesBilling() {
               <BillsTable 
                 bills={bills.filter(b => b.status !== 'paid')} 
                 onView={setViewBill} 
-                onEdit={() => {}} 
+                onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
                 onWhatsApp={(bill) => setViewBill(bill)}
                 onPayment={setShowPayment} 
@@ -185,7 +186,7 @@ export default function SalesBilling() {
               <BillsTable 
                 bills={bills.filter(b => b.status === 'paid')} 
                 onView={setViewBill} 
-                onEdit={() => {}} 
+                onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
                 onWhatsApp={(bill) => setViewBill(bill)}
                 onPayment={() => {}} 
@@ -221,6 +222,26 @@ export default function SalesBilling() {
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Bill Portal */}
+      <Dialog open={!!editBill} onOpenChange={() => setEditBill(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl p-0">
+            <div className="bg-slate-900 p-4 text-white">
+              <DialogTitle className="text-lg font-bold tracking-tight uppercase">Edit Invoice</DialogTitle>
+              <DialogDescription className="text-slate-400 text-xs mt-1">Modify the condition or details of the bill.</DialogDescription>
+            </div>
+           <div className="p-6 bg-white">
+            {editBill && (
+              <CreateBillForm 
+                parties={parties} 
+                stocks={stocks} 
+                initialData={editBill}
+                onSuccess={() => setEditBill(null)} 
+              />
+            )}
+           </div>
         </DialogContent>
       </Dialog>
     </div>
