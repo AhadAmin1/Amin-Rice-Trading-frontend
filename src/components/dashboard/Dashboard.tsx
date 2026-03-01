@@ -7,16 +7,13 @@ import {
   TrendingUp,
   Receipt,
   ChevronRight,
-  ShieldCheck,
   Zap,
-  Clock,
-  ExternalLink
-} from 'lucide-react';
+  Clock} from 'lucide-react';
 import { dataStore } from '@/store/dataStore';
 import { cn } from '@/lib/utils';
 import type { DashboardSummary, ViewType, Bill, CashEntry as CashEntryType } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 interface DashboardProps {
