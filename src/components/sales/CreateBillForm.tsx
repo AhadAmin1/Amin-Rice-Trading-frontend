@@ -25,6 +25,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     billNo: "",
     paymentType: 'cash' as 'cash' | 'credit',
     dueDays: '0',
+    date: new Date().toISOString().split('T')[0],
   });
 
   const [loading, setLoading] = useState(false);
@@ -102,14 +103,15 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
       const profit = totalAmount - calculatedPurchaseCost;
 
       const days = formData.paymentType === 'credit' ? Number(formData.dueDays) : 3;
-      const dueDate = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const baseDate = new Date(formData.date);
+      const dueDate = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       const bill = await dataStore.addBill({
         buyerId: formData.buyerId,
         buyerName: buyer.name,
         millerId: selectedStock.millerId,
         millerName: selectedStock.millerName,
-        date: new Date().toISOString().split('T')[0],
+        date: formData.date,
         itemName: selectedStock.itemName,
         stockId: selectedStock.id,
         katte,
@@ -140,6 +142,16 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Bill Date</Label>
+          <Input 
+            type="date"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+            value={formData.date} 
+            onChange={e => setFormData({ ...formData, date: e.target.value })} 
+            required 
+          />
+        </div>
+        <div className="space-y-2">
           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Bill Number</Label>
           <Input 
             placeholder="Next Bill Number..."
@@ -149,7 +161,8 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
             required 
           />
         </div>
-        <div className="space-y-2">
+
+        <div className="space-y-2 col-span-2">
           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Buyer</Label>
           <Select 
               value={formData.buyerId} 
@@ -176,8 +189,8 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Stock</Label>
+        <div className="space-y-2 col-span-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Stock Source</Label>
           <Select 
               value={formData.stockId} 
               onValueChange={value => setFormData({ ...formData, stockId: value })}

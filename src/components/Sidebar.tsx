@@ -68,7 +68,7 @@ export function Sidebar({ currentView, onViewChange, isOpen, onToggle }: Sidebar
               <Package className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg tracking-tight text-white leading-none">Amin <span className="text-amber-500">Rice</span></h1>
+              <h1 className="font-bold text-lg tracking-tight text-black leading-none">Amin <span className="text-amber-500">Rice</span></h1>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Trading Co.</p>
             </div>
           </div>

@@ -12,7 +12,8 @@ import {
   Share2 as ShareIcon, 
   Phone, 
   CheckCircle2,
-  ShoppingBag
+  ShoppingBag,
+  MapPin
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -170,10 +171,10 @@ function PartiesGrid({
 
         return (
           <div key={party.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
+            <div className="flex items-start justify-between mb-6 gap-2">
+              <div className="flex items-start gap-4 flex-1 min-w-0">
                 <div className={cn(
-                  "w-12 h-12 rounded-lg flex items-center justify-center",
+                  "w-12 h-12 rounded-lg flex items-center justify-center shrink-0",
                   party.type === 'Buyer' ? 'bg-blue-50 text-blue-600' : 
                   party.type === 'Miller' ? 'bg-amber-50 text-amber-600' :
                   'bg-emerald-50 text-emerald-600'
@@ -183,23 +184,40 @@ function PartiesGrid({
                    <Wallet className="h-7 w-7" />
                   }
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">{party.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={cn(
-                      "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border",
-                      party.type === 'Buyer' ? "bg-blue-50 border-blue-100 text-blue-700" :
-                      party.type === 'Miller' ? "bg-amber-50 border-amber-100 text-amber-700" :
-                      "bg-emerald-50 border-emerald-100 text-emerald-700"
-                    )}>
-                      {party.type}
-                    </span>
-                    {party.phone && <span className="text-[10px] font-semibold text-slate-400"># {party.phone.replace('+92 ', '')}</span>}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight truncate leading-tight" title={party.name}>{party.name}</h3>
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border shrink-0",
+                        party.type === 'Buyer' ? "bg-blue-50 border-blue-100 text-blue-700" :
+                        party.type === 'Miller' ? "bg-amber-50 border-amber-100 text-amber-700" :
+                        "bg-emerald-50 border-emerald-100 text-emerald-700"
+                      )}>
+                        {party.type}
+                      </span>
+                      {party.phone && (
+                        <div className="flex items-center gap-1 min-w-0 max-w-[120px]">
+                          <Phone className="h-3 w-3 text-slate-300 shrink-0" />
+                          <span className="text-[10px] font-bold text-slate-400 whitespace-nowrap truncate">
+                            {party.phone}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {party.address && (
+                      <div className="flex items-center gap-1.5 min-w-0">
+                         <MapPin className="h-3 w-3 text-slate-300 shrink-0" />
+                         <p className="text-[10px] font-medium text-slate-400 truncate italic" title={party.address}>
+                           {party.address}
+                         </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 <EditPartyDialog party={party} onUpdated={() => {onRefresh && onRefresh();}} />
                 <Button 
                    size="icon" 
