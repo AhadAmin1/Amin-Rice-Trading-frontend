@@ -87,8 +87,8 @@ export function ReceiptView({ stock }: { stock: StockItem }) {
         
         <div className="relative z-10">
           <div className="text-center border-b-2 border-slate-100 pb-6 mb-6">
-            <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Amin Rice Trading</h1>
-            <p className="text-slate-500 text-xs font-medium uppercase tracking-widest">Miller Purchase Receipt</p>
+            <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-tight">Amin Rice Trading</h1>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Purchase Receipt</p>
             <div className={`mt-4 inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
               stock.status === 'paid' ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'
             }`}>
@@ -108,10 +108,10 @@ export function ReceiptView({ stock }: { stock: StockItem }) {
             <div>
               <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Condition</p>
               <span className={cn(
-                "font-black text-[13px] uppercase px-3 py-1 rounded-lg w-fit mt-1 shadow-sm border block",
-                stock.paymentType === 'credit' ? "bg-rose-50 text-rose-700 border-rose-100" : "bg-emerald-50 text-emerald-700 border-emerald-100"
+                "font-bold text-xs uppercase px-2 py-1 rounded bg-slate-100 w-fit mt-1 block",
+                stock.paymentType === 'credit' ? "text-rose-700" : "text-emerald-700"
               )}>
-                {stock.paymentType === 'credit' ? 'Udhar (Credit)' : 'Cash Payment'}
+                {stock.paymentType === 'credit' ? 'Credit (Udhar)' : 'Cash'}
               </span>
             </div>
             <div className="text-right">
@@ -150,18 +150,18 @@ export function ReceiptView({ stock }: { stock: StockItem }) {
             </div>
           </div>
 
-          <div className="bg-slate-800 text-white rounded-lg p-5 shadow-lg shadow-slate-200">
+          <div className="bg-slate-900 text-white rounded-lg p-5">
             <div className="flex justify-between items-center mb-2">
-              <p className="text-[10px] uppercase font-bold tracking-widest opacity-80">Total Amount</p>
-              <p className="text-xl font-black leading-none">{formatCurrency(stock.totalAmount || 0)}</p>
+              <p className="text-[10px] uppercase font-bold tracking-wider opacity-70">Total Amount</p>
+              <p className="text-xl font-bold">{formatCurrency(stock.totalAmount || 0)}</p>
             </div>
-            <div className="flex justify-between items-center border-t border-slate-600 pt-2 text-xs">
-              <span className="opacity-80">Paid Amount:</span>
-              <span className="font-bold text-green-400">{formatCurrency(stock.paidAmount || 0)}</span>
+            <div className="flex justify-between items-center border-t border-slate-700 pt-2 text-xs">
+              <span className="opacity-70">Paid:</span>
+              <span className="font-bold text-emerald-400">{formatCurrency(stock.paidAmount || 0)}</span>
             </div>
             <div className="flex justify-between items-center pt-1 text-xs">
-              <span className="opacity-80">Remaining:</span>
-              <span className="font-black text-amber-400">{formatCurrency((stock.totalAmount || 0) - (stock.paidAmount || 0))}</span>
+              <span className="opacity-70">Balance:</span>
+              <span className="font-bold text-amber-400">{formatCurrency((stock.totalAmount || 0) - (stock.paidAmount || 0))}</span>
             </div>
           </div>
 

@@ -60,38 +60,32 @@ export function StockManagement() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 bg-white/40 p-6 rounded-2xl border border-white/20 backdrop-blur-sm shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/20 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-8 w-1 bg-amber-500 rounded-full" />
-            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest leading-none">Inventory Management</span>
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Stock / <span className="text-gold">Maal Book</span></h2>
-          <p className="text-slate-500 font-medium mt-1">Institutional grade warehouse & miller purchase control.</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Stock Management</h2>
+          <p className="text-slate-500 text-sm mt-1">Manage warehouse inventory and miller purchases.</p>
         </div>
         
-        <div className="flex items-center gap-3 relative z-10">
+        <div className="flex items-center gap-3">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="gold-gradient hover:opacity-90 text-white font-bold h-12 px-8 rounded-2xl shadow-lg border-none transition-all active:scale-95 group">
-                <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
-                Add New Inventory
+              <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold h-10 px-6 rounded-lg shadow-sm transition-all flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="uppercase tracking-wider text-xs">Add Inventory</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">New Purchase Entry</DialogTitle>
-                <DialogDescription className="text-sm font-medium text-slate-500 italic">
-                  Record new stock arrivals from millers to synchronize inventory and khata.
-                </DialogDescription>
-              </DialogHeader>
-              <AddStockForm onSuccess={(stockItem: StockItem) => {
-                setIsAddDialogOpen(false);
-                loadStock();
-                if (stockItem) setSelectedStockReceiptId(stockItem.id);
-              }} />
+            <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto rounded-xl border-none shadow-2xl p-0">
+              <div className="bg-slate-900 p-6 text-white">
+                <DialogTitle className="text-lg font-bold tracking-tight uppercase">New Purchase Entry</DialogTitle>
+                <p className="text-slate-400 text-xs mt-1">Record new stock arrivals from millers.</p>
+              </div>
+              <div className="p-6">
+                <AddStockForm onSuccess={(stockItem: StockItem) => {
+                  setIsAddDialogOpen(false);
+                  loadStock();
+                  if (stockItem) setSelectedStockReceiptId(stockItem.id);
+                }} />
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -107,33 +101,23 @@ export function StockManagement() {
           className="w-full"
         >
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-2">
-            <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-200/50 backdrop-blur-sm">
-              <TabsTrigger 
-                value="all" 
-                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
-              >
-                Comprehensive View
-              </TabsTrigger>
-              <TabsTrigger 
-                value="available" 
-                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
-              >
-                In-Stock Only
-              </TabsTrigger>
+            <TabsList className="bg-slate-100 p-1 rounded-lg h-auto">
+              <TabsTrigger value="all" className="rounded-md px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider">Comprehensive View</TabsTrigger>
+              <TabsTrigger value="available" className="rounded-md px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-amber-600">In-Stock Only</TabsTrigger>
             </TabsList>
             
-            <div className="relative w-full lg:max-w-md group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
-              <Input
-                placeholder="Search inventory, millers, or official receipt numbers..."
-                className="pl-12 h-14 bg-white/70 backdrop-blur-md border-amber-100/50 rounded-2xl shadow-sm focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700"
+            <div className="relative w-full lg:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="glass-card rounded-2xl mt-6 border-amber-100/30 overflow-hidden shadow-2xl">
+          <div className="bg-white rounded-xl mt-6 border border-slate-200 shadow-sm overflow-hidden">
             <TabsContent value="all" className="m-0">
                <StockTable 
                   stock={filteredStock}
@@ -244,58 +228,55 @@ function StatsCards({ stock }: { stock: StockItem[] }) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
-        <div className="flex items-center justify-between mb-6">
-          <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-600 group-hover:gold-gradient group-hover:text-white transition-all duration-700 shadow-inner">
-            <Package className="h-7 w-7" />
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
+            <Package className="h-5 w-5" />
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Institutional Stock</span>
+          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Remaining Stock</span>
         </div>
-        <div className="space-y-2">
-          <h4 className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums drop-shadow-sm">{remainingKatte}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Global Pool: {totalKatte} KT</p>
+        <div className="space-y-1">
+          <h4 className="text-2xl font-bold text-slate-950 tabular-nums">{remainingKatte} <span className="text-xs font-bold text-slate-500">KT</span></h4>
+          <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest pl-1">Total Pool: {totalKatte} KT</p>
         </div>
       </div>
 
-      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
-        <div className="flex items-center justify-between mb-6">
-          <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-700 shadow-inner">
-            <TrendingUp className="h-7 w-7" />
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+            <TrendingUp className="h-5 w-5" />
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Net Tonnage</span>
+          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Weight Total</span>
         </div>
-        <div className="space-y-2">
-          <h4 className="text-4xl font-black text-blue-600 tracking-tighter tabular-nums drop-shadow-sm">
+        <div className="space-y-1">
+          <h4 className="text-2xl font-bold text-blue-600 tabular-nums">
             {stock.reduce((sum, s) => sum + (s.remainingWeight || 0), 0).toLocaleString()}
-            <span className="text-sm ml-2 text-slate-400 font-black uppercase">KG</span>
+            <span className="text-xs ml-1 text-slate-400 font-bold uppercase">KG</span>
           </h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Active Mass Volume</p>
         </div>
       </div>
 
-      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
-        <div className="flex items-center justify-between mb-6">
-          <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-700 shadow-inner">
-            <Wallet className="h-7 w-7" />
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+            <Wallet className="h-5 w-5" />
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Direct Outflow</span>
+          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Paid Amount</span>
         </div>
-        <div className="space-y-2">
-          <h4 className="text-4xl font-black text-emerald-600 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalPaid)}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Audit Cleared Amount</p>
+        <div className="space-y-1">
+          <h4 className="text-2xl font-bold text-emerald-600 tabular-nums">{formatCurrency(totalPaid)}</h4>
         </div>
       </div>
 
-      <div className="premium-glass p-6 rounded-2xl border-white/20 group hover:shadow-premium floating-card">
-        <div className="flex items-center justify-between mb-6">
-          <div className="p-4 rounded-2xl bg-rose-500/10 text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-all duration-700 shadow-inner">
-            <ArrowUpRight className="h-7 w-7" />
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <div className="p-2 rounded-lg bg-rose-50 text-rose-600">
+            <ArrowUpRight className="h-5 w-5" />
           </div>
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Liabilities</span>
+          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Outstanding</span>
         </div>
-        <div className="space-y-2">
-          <h4 className="text-4xl font-black text-rose-600 tracking-tighter tabular-nums drop-shadow-sm">{formatCurrency(totalBalance)}</h4>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1 opacity-60">Outstanding Debt Portfolio</p>
+        <div className="space-y-1">
+          <h4 className="text-2xl font-bold text-rose-600 tabular-nums">{formatCurrency(totalBalance)}</h4>
         </div>
       </div>
     </div>
@@ -305,6 +286,10 @@ function StatsCards({ stock }: { stock: StockItem[] }) {
 function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) {
   const [parties, setParties] = useState<any[]>([]);
   const [nextReceiptHint, setNextReceiptHint] = useState<string>('');
+
+  const formatCurrency = (amount: number) => {
+    return `RS ${new Intl.NumberFormat('en-PK', { maximumFractionDigits: 0 }).format(amount)}`;
+  };
 
   useEffect(() => {
     dataStore.getParties().then(setParties);
@@ -381,23 +366,23 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
     <form onSubmit={handleSubmit} className="space-y-6 pt-4">
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="date" className="text-xs font-black uppercase text-slate-500 ml-1">Arrival Date</Label>
+          <Label htmlFor="date" className="text-xs font-extrabold uppercase text-slate-700 ml-1">Arrival Date</Label>
           <Input
             id="date"
             type="date"
-            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+            className="h-12 rounded-xl bg-slate-50 border-slate-300 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-slate-900"
             value={formData.date}
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="miller" className="text-xs font-black uppercase text-slate-500 ml-1">Miller / Party</Label>
+          <Label htmlFor="miller" className="text-xs font-extrabold uppercase text-slate-700 ml-1">Miller / Party</Label>
           <Select 
             value={formData.millerId} 
             onValueChange={(value) => setFormData({ ...formData, millerId: value })}
           >
-            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-300 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-slate-900">
               <SelectValue placeholder="Select Miller source" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
@@ -423,7 +408,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="itemName" className="text-xs font-black uppercase text-slate-500 ml-1">Stock Description (Rice Type)</Label>
+        <Label htmlFor="itemName" className="text-xs font-black uppercase text-slate-500 ml-1">Item Name</Label>
         <Input
           id="itemName"
           placeholder="e.g., Basmati 1121 Sella, Super Kernel"
@@ -436,7 +421,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="receiptNumber" className="text-xs font-black uppercase text-slate-500 ml-1">Receipt / Gate Pass #</Label>
+          <Label htmlFor="receiptNumber" className="text-xs font-black uppercase text-slate-500 ml-1">Receipt Number</Label>
           <Input
             id="receiptNumber"
             placeholder={nextReceiptHint ? `Suggested: ${nextReceiptHint}` : "Internal Ref"}
@@ -446,7 +431,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="katte" className="text-xs font-black uppercase text-slate-500 ml-1">Total Katte (Pcs)</Label>
+          <Label htmlFor="katte" className="text-xs font-black uppercase text-slate-500 ml-1">Total Katte</Label>
           <Input
             id="katte"
             type="number"
@@ -462,7 +447,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="weightPerKatta" className="text-xs font-black uppercase text-slate-500 ml-1">Avg Weight (kg)</Label>
+          <Label htmlFor="weightPerKatta" className="text-xs font-black uppercase text-slate-500 ml-1">Weight Per Katta (kg)</Label>
           <Input
             id="weightPerKatta"
             type="number"
@@ -476,7 +461,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="purchaseRate" className="text-xs font-black uppercase text-slate-500 ml-1">Sourcing Rate (Price)</Label>
+          <Label htmlFor="purchaseRate" className="text-xs font-black uppercase text-slate-500 ml-1">Purchase Rate</Label>
           <Input
             id="purchaseRate"
             type="number"
@@ -493,7 +478,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="bhardanaRate" className="text-xs font-black uppercase text-slate-500 ml-1">Bhardana / Bag Price</Label>
+          <Label htmlFor="bhardanaRate" className="text-xs font-black uppercase text-slate-500 ml-1">Bhardana Rate</Label>
           <Input
             id="bhardanaRate"
             type="number"
@@ -506,7 +491,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="rateType" className="text-xs font-black uppercase text-slate-500 ml-1">Calculation Metric</Label>
+          <Label htmlFor="rateType" className="text-xs font-black uppercase text-slate-500 ml-1">Rate Type</Label>
           <Select 
             value={formData.rateType} 
             onValueChange={(value: 'per_kg' | 'per_katta') => setFormData({ ...formData, rateType: value })}
@@ -524,7 +509,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
 
       <div className="grid grid-cols-2 gap-6 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 shadow-inner">
         <div className="space-y-2">
-          <Label htmlFor="paymentType" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Condition</Label>
+          <Label htmlFor="paymentType" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Type</Label>
           <Select 
             value={formData.paymentType} 
             onValueChange={(value: 'cash' | 'credit') => setFormData({ ...formData, paymentType: value })}
@@ -540,7 +525,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
         </div>
         {formData.paymentType === 'credit' && (
           <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
-            <Label htmlFor="dueDays" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Term (Days)</Label>
+            <Label htmlFor="dueDays" className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Credit Days</Label>
             <Input
               id="dueDays"
               type="number"
@@ -554,36 +539,34 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
         )}
       </div>
 
-      {/* Dynamic Summary Preview */}
-      <div className="premium-glass p-6 rounded-2xl border-white/20 shadow-inner group transition-all duration-700 hover:shadow-premium relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all duration-1000" />
+      {/* Summary Preview */}
+      <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
-            <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Commercial Verification Hub</h5>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-2 w-2 rounded-full bg-amber-500" />
+            <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Transaction Summary</h5>
           </div>
           
-          <div className="grid grid-cols-2 gap-y-6 text-sm">
-            <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Tonnage Mass</span>
-              <span className="text-xl font-black text-slate-900 tracking-tighter">{(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(2)} KG</span>
+          <div className="grid grid-cols-2 gap-y-4 text-sm">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Tonnage</span>
+              <span className="text-lg font-bold text-slate-900 tabular-nums">{(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(2)} KG</span>
             </div>
             
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Packaging (Bhardana)</span>
-              <span className="text-xl font-black text-slate-900 tracking-tighter">
-                {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bhardana Total</span>
+              <span className="text-lg font-bold text-slate-900 tabular-nums">
+                {formatCurrency(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
               </span>
             </div>
 
-            <div className="col-span-2 pt-6 border-t border-slate-100 mt-2">
+            <div className="col-span-2 pt-4 border-t border-slate-200 mt-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] mb-1 block underline decoration-amber-200 underline-offset-4">Net Payable to Miller:</span>
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">Institutional Rate: {formData.rateType === 'per_kg' ? 'BY WEIGHT' : 'BY UNIT'}</p>
+                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Net Payable:</span>
                 </div>
-                <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none drop-shadow-sm">
-                  {new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 }).format(
+                <span className="text-3xl font-bold text-slate-900 tabular-nums">
+                  {formatCurrency(
                     (formData.rateType === 'per_kg'
                       ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
                       : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.katte) * (Number(formData.bhardanaRate) || 0))

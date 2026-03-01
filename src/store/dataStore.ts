@@ -58,6 +58,8 @@ class DataStore {
   private activeRequests = 0;
   private listeners: ((loading: boolean) => void)[] = [];
   private updateListeners: (() => void)[] = [];
+  private overdueItems: any[] = [];
+  private notificationListeners: ((items: any[]) => void)[] = [];
 
   subscribe(listener: (loading: boolean) => void) {
     this.listeners.push(listener);
@@ -71,6 +73,22 @@ class DataStore {
     return () => {
       this.updateListeners = this.updateListeners.filter(l => l !== listener);
     };
+  }
+
+  onNotifications(listener: (items: any[]) => void) {
+    this.notificationListeners.push(listener);
+    return () => {
+      this.notificationListeners = this.notificationListeners.filter(l => l !== listener);
+    };
+  }
+
+  setOverdueItems(items: any[]) {
+    this.overdueItems = items;
+    this.notificationListeners.forEach(l => l(items));
+  }
+
+  getOverdueItems() {
+    return this.overdueItems;
   }
 
   private updateTimer: any = null;
@@ -134,6 +152,11 @@ class DataStore {
   async deleteParty(id: string): Promise<void> {
     await fetchJson(`/parties/${id}`, { method: 'DELETE' });
     this.notifyUpdate();
+  }
+
+  async getNextBillNumber(): Promise<string> {
+    const data = await fetchJson('/bills/next-number');
+    return data.nextNumber;
   }
 
   // Stock
@@ -252,6 +275,16 @@ class DataStore {
     return mapId(data);
   }
 
+  async getStockLedger(stockId: string): Promise<LedgerEntry[]> {
+    const data = await fetchJson(`/ledger/stock/${stockId}`);
+    return mapId(data);
+  }
+
+  async getBillLedger(billId: string): Promise<LedgerEntry[]> {
+    const data = await fetchJson(`/ledger/bill/${billId}`);
+    return mapId(data);
+  }
+
   async addLedgerEntry(entry: any): Promise<LedgerEntry> {
     const data = await fetchJson('/ledger', {
       method: 'POST',
@@ -286,7 +319,8 @@ class DataStore {
   
   async payMiller(amount: number, date: string, description: string, receiptNo?: string): Promise<void> {
       // Logic: Only add to Cash Book. Backend "Smart Linking" handles the Ledger.
-      const linkRef = receiptNo || (description.match(/#?(S-\d+)/i)?.[1]);
+      const stockMatch = description.match(/#?(S-?\d+)/i);
+      const linkRef = receiptNo || (stockMatch ? (stockMatch[1].toUpperCase().startsWith('S-') ? stockMatch[1].toUpperCase() : `S-${stockMatch[1].toUpperCase().replace('S', '')}`) : null);
       await this.addCashEntry({
           date,
           type: 'out',

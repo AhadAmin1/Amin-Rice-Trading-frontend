@@ -51,31 +51,24 @@ export function CashBook() {
 
   return (
     <div className="space-y-10 pb-10">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 premium-glass p-6 rounded-2xl border-white/20 shadow-premium relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-amber-500/5 rounded-full -mr-40 -mt-40 blur-[100px]" />
-        <div className="relative z-10 flex flex-col gap-2">
-           <div className="flex items-center gap-3">
-              <div className="h-6 w-1 gold-gradient rounded-full" />
-              <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em]">Commercial Liquidity Reservoir</span>
-           </div>
-           <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">Global <span className="text-amber-600">Treasury</span></h2>
-           <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Institutional Cash Flow & Master Auditing Protocols</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Global Cash Book</h2>
+          <p className="text-slate-500 text-sm mt-1">Manage cash flow and daily transactions.</p>
         </div>
         
-        <div className="flex items-center gap-4 relative z-10">
+        <div className="flex items-center gap-3">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="h-16 gold-gradient text-white font-bold px-10 rounded-3xl shadow-lg transition-all active:scale-95 flex items-center gap-3 hover:opacity-90">
-                <Plus className="h-6 w-6" />
-                <span className="uppercase tracking-widest text-[10px]">Execute Master Entry</span>
+              <Button className="h-10 bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 rounded-lg shadow-sm transition-all flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="uppercase tracking-wider text-xs">Add Entry</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-xl rounded-2xl border-none shadow-premium p-0 overflow-hidden">
-               <div className="premium-gradient p-6 text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
-                  <DialogTitle className="text-3xl font-black tracking-tighter uppercase mb-2">Treasury Dispatch</DialogTitle>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">Manual Liquidity Injection or Disbursement Protocol</p>
+            <DialogContent className="max-w-md rounded-xl border-none shadow-2xl p-0 overflow-hidden">
+               <div className="bg-slate-900 p-6 text-white">
+                  <DialogTitle className="text-lg font-bold tracking-tight uppercase">Cash Transaction</DialogTitle>
+                  <p className="text-slate-400 text-xs mt-1">Record money in or out of the system.</p>
                </div>
                <div className="p-6 bg-white">
                 <AddCashForm 
@@ -91,24 +84,22 @@ export function CashBook() {
       </div>
 
       {/* Analytics matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: 'Available Liquidity', value: formatCurrency(currentBalance), icon: Wallet, color: '#f59e0b', trend: 'Live Balance', highlight: true },
-          { label: 'Verified Inflow', value: formatCurrency(totalCredit), icon: ArrowUpRight, color: '#10b981', trend: 'Cumulative' },
-          { label: 'Capital Outflow', value: formatCurrency(totalDebit), icon: ArrowDownLeft, color: '#f43f5e', trend: 'Expenditure' },
+          { label: 'Available Balance', value: formatCurrency(currentBalance), icon: Wallet, color: '#f59e0b', highlight: true },
+          { label: 'Total Inflow', value: formatCurrency(totalCredit), icon: ArrowUpRight, color: '#10b981' },
+          { label: 'Total Outflow', value: formatCurrency(totalDebit), icon: ArrowDownLeft, color: '#f43f5e' },
         ].map((stat, i) => (
-          <div key={i} className={cn("p-8 rounded-2xl shadow-premium relative overflow-hidden transition-all duration-700 hover:-translate-y-2 group h-full", stat.highlight ? "premium-gradient text-white" : "premium-glass border-white/20")}>
-            {stat.highlight && <div className="absolute top-0 right-0 w-40 h-40 bg-amber-500/10 rounded-full -mr-16 -mt-16 blur-3xl opacity-50 group-hover:opacity-80 transition-opacity" />}
-            <div className="relative z-10 flex flex-col h-full justify-between">
-               <div className="flex items-center justify-between mb-8">
-                  <div className={cn("p-5 rounded-2xl shadow-inner transition-transform group-hover:rotate-6", stat.highlight ? "bg-white/10 text-amber-500" : `bg-slate-100/50 text-slate-600`)} style={{ color: !stat.highlight ? stat.color : undefined }}>
-                     <stat.icon className="h-7 w-7" />
+          <div key={i} className={cn("p-6 rounded-xl border border-slate-200 shadow-sm transition-shadow", stat.highlight ? "bg-amber-50" : "bg-white")}>
+            <div className="flex flex-col h-full justify-between">
+               <div className="flex items-center justify-between mb-4">
+                  <div className={cn("p-2 rounded-lg bg-slate-100 text-slate-600", stat.highlight && "bg-amber-100 text-amber-600")}>
+                     <stat.icon className="h-5 w-5" />
                   </div>
-                  <Badge variant="outline" className={cn("text-[9px] font-bold tracking-widest uppercase px-3 py-1 rounded-full border-white/20", stat.highlight ? "text-white/60" : "text-slate-400")}>{stat.trend}</Badge>
                </div>
                <div>
-                  <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-3", stat.highlight ? "text-slate-400" : "text-slate-400")}>{stat.label}</p>
-                  <h3 className={cn("text-2xl font-bold tracking-tight tabular-nums drop-shadow-sm leading-none", stat.highlight ? "text-white" : "text-slate-900")}>{stat.value}</h3>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 mb-1">{stat.label}</p>
+                  <h3 className="text-2xl font-bold tracking-tight text-slate-950 tabular-nums">{stat.value}</h3>
                </div>
             </div>
           </div>
@@ -116,41 +107,26 @@ export function CashBook() {
       </div>
 
       {/* Main Journal interface */}
-      <div className="premium-glass rounded-2xl border-white/20 shadow-premium overflow-hidden transition-all duration-700 hover:shadow-2xl">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <Tabs 
         defaultValue={localStorage.getItem('cashbook_tab') || "all"} 
         onValueChange={(val) => localStorage.setItem('cashbook_tab', val)} 
         className="w-full"
       >
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 gap-8 border-b border-slate-100/30">
-            <TabsList className="bg-slate-100/30 p-2 rounded-[1.5rem] h-auto backdrop-blur-md border border-slate-100/50">
-              <TabsTrigger 
-                value="all" 
-                className="rounded-xl px-10 py-3 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-bold text-[10px] uppercase tracking-widest transition-all"
-              >
-                Full Archive
-              </TabsTrigger>
-              <TabsTrigger 
-                value="in" 
-                className="rounded-xl px-10 py-3 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-bold text-[10px] uppercase tracking-widest transition-all"
-              >
-                Revenue (+)
-              </TabsTrigger>
-              <TabsTrigger 
-                value="out" 
-                className="rounded-xl px-10 py-3 data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-lg font-bold text-[10px] uppercase tracking-widest transition-all"
-              >
-                Expense (-)
-              </TabsTrigger>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 gap-6 border-b border-slate-100">
+            <TabsList className="bg-slate-100 p-1 rounded-lg h-auto">
+              <TabsTrigger value="all" className="rounded-md px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider">Full History</TabsTrigger>
+              <TabsTrigger value="in" className="rounded-md px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-emerald-600">Inflow (+)</TabsTrigger>
+              <TabsTrigger value="out" className="rounded-md px-6 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider text-rose-600">Outflow (-)</TabsTrigger>
             </TabsList>
             
-            <div className="relative w-full lg:max-w-md group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-300 group-focus-within:text-amber-500 transition-all" />
-              <Input
-                placeholder="Search audit trail or REF ID..."
+            <div className="relative w-full lg:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                placeholder="Search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-14 h-16 bg-white/40 backdrop-blur-xl border-white/20 rounded-2xl shadow-inner focus:ring-amber-500/10 focus:border-amber-500 font-bold uppercase text-[10px] tracking-widest placeholder:text-slate-300"
+                className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               />
             </div>
           </div>
@@ -180,12 +156,12 @@ function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
   return (
     <Table>
       <TableHeader>
-        <TableRow className="border-none hover:bg-transparent">
-          <TableHead className="py-8 px-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Date Segment</TableHead>
-          <TableHead className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Contextual Audit</TableHead>
-          <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Debit</TableHead>
-          <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Credit</TableHead>
-          <TableHead className="text-right px-8 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Net Liquidity</TableHead>
+        <TableRow className="bg-slate-50">
+          <TableHead className="py-3 px-6 text-[11px] font-extrabold uppercase tracking-wider text-slate-700">Date</TableHead>
+          <TableHead className="text-[11px] font-extrabold uppercase tracking-wider text-slate-700">Description</TableHead>
+          <TableHead className="text-right text-[11px] font-extrabold uppercase tracking-wider text-slate-700">Debit (Out)</TableHead>
+          <TableHead className="text-right text-[11px] font-extrabold uppercase tracking-wider text-slate-700">Credit (In)</TableHead>
+          <TableHead className="text-right px-6 text-[11px] font-extrabold uppercase tracking-wider text-slate-700">Balance</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -193,39 +169,30 @@ function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
           <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">No historical data found in treasury</TableCell></TableRow>
         ) : (
           entries.slice().reverse().map((entry) => (
-            <TableRow key={entry.id} className="group border-b border-slate-50 hover:bg-amber-500/[0.02] transition-all duration-500">
-              <TableCell className="py-8 px-8 font-black text-slate-900 tabular-nums">
-                <div className="flex flex-col">
-                  <span className="text-sm">{new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">Segment Log</span>
-                </div>
+            <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors">
+              <TableCell className="py-4 px-6 font-bold text-slate-900 tabular-nums text-xs">
+                {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               </TableCell>
               <TableCell>
-                <div className="flex items-center gap-6">
-                  <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shadow-inner", entry.type === 'in' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600')}>
-                     {entry.type === 'in' ? <ArrowUpRight className="h-6 w-6" /> : <ArrowDownLeft className="h-6 w-6" />}
+                <div className="flex items-center gap-4">
+                  <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", entry.type === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600')}>
+                     {entry.type === 'in' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownLeft className="h-4 w-4" />}
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[13px] font-black text-slate-700 tracking-tight leading-none group-hover:text-slate-900 transition-colors">{entry.description}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-slate-700">{entry.description}</span>
                     <div className="flex items-center gap-2">
-                       <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mt-0.5">{formatDistanceToNow(new Date(entry.date))} ago</span>
+                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{formatDistanceToNow(new Date(entry.date))} ago</span>
                        {entry.billReference && (
-                         <>
-                           <div className="h-1 w-1 rounded-full bg-slate-200 mt-1" />
-                           <Badge variant="outline" className="text-[9px] font-black border-slate-200 bg-slate-50 text-slate-500 px-3 py-0.5 rounded-full uppercase tracking-tighter mt-1">REF: {entry.billReference}</Badge>
-                         </>
+                         <Badge variant="secondary" className="text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">REF: {entry.billReference}</Badge>
                        )}
                     </div>
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="text-right font-black text-rose-600 tabular-nums text-sm">{entry.debit > 0 ? formatCurrency(entry.debit) : '—'}</TableCell>
-              <TableCell className="text-right font-black text-emerald-600 tabular-nums text-sm">{entry.credit > 0 ? formatCurrency(entry.credit) : '—'}</TableCell>
-              <TableCell className="text-right px-8">
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-sm font-black text-slate-900 tabular-nums tracking-tighter drop-shadow-sm">{formatCurrency(entry.balance)}</span>
-                  <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">Running Net</span>
-                </div>
+              <TableCell className="text-right font-bold text-rose-600 tabular-nums text-xs">{entry.debit > 0 ? formatCurrency(entry.debit) : '—'}</TableCell>
+              <TableCell className="text-right font-bold text-emerald-600 tabular-nums text-xs">{entry.credit > 0 ? formatCurrency(entry.credit) : '—'}</TableCell>
+              <TableCell className="text-right px-6 font-bold text-slate-900 tabular-nums text-xs">
+                {formatCurrency(entry.balance)}
               </TableCell>
             </TableRow>
           ))
@@ -265,64 +232,64 @@ function AddCashForm({ onSuccess }: { onSuccess: () => void }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <Button 
           type="button"
           variant={formData.type === 'in' ? 'default' : 'outline'}
-          className={cn("h-20 rounded-2xl flex flex-col gap-1 transition-all", formData.type === 'in' ? 'gold-gradient text-white border-none shadow-lg shadow-amber-500/20' : 'bg-slate-50 text-slate-400')}
+          className={cn("h-14 rounded-lg flex flex-col gap-1 transition-all", formData.type === 'in' ? 'bg-emerald-600 text-white border-none shadow-sm' : 'bg-slate-50 text-slate-500')}
           onClick={() => setFormData({ ...formData, type: 'in' })}
         >
-          <ArrowUpRight className="h-6 w-6" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Inflow</span>
+          <ArrowUpRight className="h-5 w-5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Cash In</span>
         </Button>
         <Button 
           type="button"
           variant={formData.type === 'out' ? 'default' : 'outline'}
-          className={cn("h-20 rounded-2xl flex flex-col gap-1 transition-all", formData.type === 'out' ? 'bg-slate-900 text-white border-none shadow-lg' : 'bg-slate-50 text-slate-400')}
+          className={cn("h-14 rounded-lg flex flex-col gap-1 transition-all", formData.type === 'out' ? 'bg-rose-600 text-white border-none shadow-sm' : 'bg-slate-50 text-slate-500')}
           onClick={() => setFormData({ ...formData, type: 'out' })}
         >
-          <ArrowDownLeft className="h-6 w-6" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Outflow</span>
+          <ArrowDownLeft className="h-5 w-5" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Cash Out</span>
         </Button>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Contextual Description</Label>
+        <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Description</Label>
         <Input 
-          placeholder="e.g., Office Utilities Payment"
+          placeholder="e.g. Office Utilities Payment"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium"
+          className="h-10 rounded-lg bg-slate-50 border-slate-200 font-semibold"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Monetary Volume (RS)</Label>
+          <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Amount (RS)</Label>
           <Input 
             type="number"
             placeholder="0.00"
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white transition-all font-black tabular-nums"
+            className="h-10 rounded-lg bg-slate-50 border-slate-200 font-bold tabular-nums"
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Document Ref #</Label>
+          <Label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Ref #</Label>
           <Input 
             placeholder="Optional"
             value={formData.billReference}
             onChange={(e) => setFormData({ ...formData, billReference: e.target.value })}
-            className="h-14 rounded-2xl bg-slate-50 border-slate-100 focus:bg-white transition-all font-medium uppercase placeholder:normal-case"
+            className="h-10 rounded-lg bg-slate-50 border-slate-200 font-semibold uppercase"
           />
         </div>
       </div>
 
       <div className="flex gap-4 pt-4">
-        <Button type="button" variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest" onClick={onSuccess}>Abort</Button>
-        <Button type="submit" className={cn("flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest text-white shadow-xl shadow-amber-500/10", formData.type === 'in' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600')}>
-          {formData.type === 'in' ? 'Authorize Inflow' : 'Authorize Disbursement'}
+        <Button type="button" variant="outline" className="flex-1 h-10 rounded-lg font-bold uppercase text-xs tracking-wider" onClick={onSuccess}>Cancel</Button>
+        <Button type="submit" className={cn("flex-1 h-10 rounded-lg font-bold uppercase text-xs tracking-wider text-white", formData.type === 'in' ? 'bg-emerald-600' : 'bg-rose-600')}>
+          Record
         </Button>
       </div>
     </form>

@@ -13,12 +13,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import type { Bill, Party, StockItem } from '@/types';
 import { BillsTable } from './BillsTable';
 import { CreateBillForm } from './CreateBillForm';
 import { BillView } from './BillView';
 import { PaymentForm } from '../ledger/LedgerSystem';
+import { cn } from '@/lib/utils';
 
 export default function SalesBilling() {
   const [bills, setBills] = useState<Bill[]>([]);
@@ -66,31 +66,25 @@ export default function SalesBilling() {
 
   return (
     <div className="space-y-6 pb-10">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 bg-white/40 p-6 rounded-2xl border border-white/20 backdrop-blur-sm shadow-sm relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/20 rounded-full -mr-32 -mt-32 blur-3xl" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-8 w-1 bg-amber-500 rounded-full" />
-            <span className="text-xs font-bold text-amber-600 uppercase tracking-widest leading-none">Commercial Division</span>
-          </div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Sales & <span className="text-gold">Billing</span></h2>
-          <p className="text-slate-500 font-medium mt-1">Generate premium invoices and track buyer receivables in real-time.</p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Sales & Billing</h2>
+          <p className="text-slate-500 text-sm mt-1">Generate invoices and track buyer receivables.</p>
         </div>
         
         <div className="flex items-center gap-3 relative z-10">
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="h-14 gold-gradient hover:opacity-90 text-white font-bold px-8 rounded-2xl shadow-lg transition-all active:scale-95 flex items-center gap-3">
-                <Plus className="h-5 w-5" />
-                <span className="uppercase tracking-widest text-xs">New Invoice</span>
+              <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 h-10 rounded-lg flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                <span className="uppercase tracking-wider text-xs">New Invoice</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border-none shadow-2xl p-0">
-               <div className="bg-slate-900 p-6 text-white">
-                  <DialogTitle className="text-2xl font-bold tracking-tight uppercase">Invoice Authorization</DialogTitle>
-                  <DialogDescription className="text-slate-400 text-sm mt-1">Configure fresh dispatch and generate commercial bill.</DialogDescription>
-               </div>
+                <div className="bg-slate-900 p-4 text-white">
+                  <DialogTitle className="text-lg font-bold tracking-tight uppercase">New Invoice</DialogTitle>
+                  <DialogDescription className="text-slate-400 text-xs mt-1">Fill in the details to generate a bill.</DialogDescription>
+                </div>
                <div className="p-6 bg-white">
                 <CreateBillForm 
                   parties={parties} 
@@ -106,62 +100,62 @@ export default function SalesBilling() {
       {/* Stats Quick Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: 'Market Valuation', value: formatCurrency(stats.totalSales), icon: TrendingUp, color: 'amber' },
-          { label: 'Capital Recovered', value: formatCurrency(stats.totalReceived), icon: ShoppingBag, color: 'emerald' },
-          { label: 'Outbound Debt', value: formatCurrency(stats.pendingReceivables), icon: Receipt, color: 'rose' },
-          { label: 'Active Invoices', value: stats.totalInvoices, icon: LayoutDashboard, color: 'slate' },
+          { label: 'Total Sales', value: formatCurrency(stats.totalSales), icon: TrendingUp, color: 'amber' },
+          { label: 'Received', value: formatCurrency(stats.totalReceived), icon: ShoppingBag, color: 'emerald' },
+          { label: 'Pending', value: formatCurrency(stats.pendingReceivables), icon: Receipt, color: 'rose' },
+          { label: 'Invoices', value: stats.totalInvoices, icon: LayoutDashboard, color: 'slate' },
         ].map((item, i) => (
-          <Card key={i} className="glass-card border-white/50 group hover:border-amber-500/30 transition-all duration-500 overflow-hidden">
+          <Card key={i} className="bg-white border-slate-200 hover:bg-slate-50 transition-colors">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl bg-${item.color}-50 text-${item.color}-600 group-hover:scale-110 transition-transform duration-500 shadow-inner`}>
+                <div className={cn(
+                  "p-2.5 rounded-lg",
+                  `bg-${item.color}-50 text-${item.color}-600`
+                )}>
                   <item.icon className="h-5 w-5" />
                 </div>
-                <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center">
-                   <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
-                </div>
+                <ChevronRight className="h-4 w-4 text-slate-300" />
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{item.label}</p>
-              <h3 className="text-2xl font-black text-slate-900 tracking-tighter tabular-nums">{item.value}</h3>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">{item.label}</p>
+              <h3 className="text-2xl font-bold text-slate-900 tracking-tight tabular-nums">{item.value}</h3>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Main Billing Interface */}
-      <div className="glass-card rounded-2xl border-white/50 shadow-sm overflow-hidden min-h-[500px]">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px]">
         <Tabs 
           defaultValue={localStorage.getItem('sales_tab') || "all"} 
           onValueChange={(val) => localStorage.setItem('sales_tab', val)} 
           className="w-full"
         >
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-6 gap-6 border-b border-slate-100">
-            <TabsList className="bg-slate-100/50 p-1.5 rounded-2xl h-auto border border-slate-200/50 backdrop-blur-sm">
+            <TabsList className="bg-slate-100 p-1 rounded-lg h-auto">
               <TabsTrigger 
                 value="all" 
-                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+                className="rounded-md px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider"
               >
-                Global Registry
+                All Invoices
               </TabsTrigger>
               <TabsTrigger 
                 value="unpaid" 
-                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+                className="rounded-md px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider"
               >
                 Outstanding
               </TabsTrigger>
               <TabsTrigger 
                 value="paid" 
-                className="rounded-xl px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-widest transition-all"
+                className="rounded-md px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider"
               >
-                Settled Invoices
+                Paid
               </TabsTrigger>
             </TabsList>
             
-            <div className="relative w-full lg:max-w-md group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-amber-500 transition-colors" />
-              <Input
-                placeholder="Search index by party name or invoice #..."
-                className="pl-12 h-14 bg-white/70 backdrop-blur-md border-amber-100/50 rounded-2xl shadow-sm focus:ring-amber-500/20 focus:border-amber-500 transition-all font-medium text-slate-700"
+            <div className="relative w-full lg:max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                placeholder="Search..."
+                className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               />
             </div>
           </div>
@@ -203,7 +197,7 @@ export default function SalesBilling() {
 
       {/* Global Invoice View Portal */}
       <Dialog open={!!viewBill} onOpenChange={() => setViewBill(null)}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-[3rem] border-none shadow-2xl p-0 bg-slate-50/50 backdrop-blur-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl border-none shadow-2xl p-0 bg-white">
           <div className="p-6">
             <DialogTitle className="sr-only">Document View</DialogTitle>
             <DialogDescription className="sr-only">Detailed view of the selected invoice.</DialogDescription>

@@ -63,6 +63,11 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     if (availableStocks.length > 0 && !formData.stockId) {
       setFormData(prev => ({ ...prev, stockId: availableStocks[0].id }));
     }
+
+    // Fetch next bill number
+    dataStore.getNextBillNumber().then(num => {
+      setFormData(prev => ({ ...prev, billNo: num }));
+    });
   }, [stocks]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,17 +140,17 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Invoice Number (Reference)</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Bill Number</Label>
           <Input 
-            placeholder="e.g. B-501"
-            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+            placeholder="Next Bill Number..."
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-extrabold text-amber-600"
             value={formData.billNo} 
             onChange={e => setFormData({ ...formData, billNo: e.target.value })} 
             required 
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Buyer Assignment</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Buyer</Label>
           <Select 
               value={formData.buyerId} 
               onValueChange={value => setFormData({ ...formData, buyerId: value })}
@@ -172,7 +177,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
         </div>
 
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Stock Reservoir</Label>
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Select Stock</Label>
           <Select 
               value={formData.stockId} 
               onValueChange={value => setFormData({ ...formData, stockId: value })}
@@ -200,10 +205,11 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
               <Info className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-600 mb-1.5 underline decoration-amber-200 underline-offset-4">Stock Intelligence</h4>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-600 mb-1.5 underline decoration-amber-200 underline-offset-4">Stock Info</h4>
               <p className="text-xs font-bold text-slate-600 leading-relaxed">
-                Allocating from <span className="text-slate-900 font-black">{selectedStock.itemName}</span>. Miller context: <span className="text-slate-900 font-black">{selectedStock.millerName}</span>. 
-                Sourcing value index: <span className="text-amber-600 font-black">{formatCurrency(selectedStock.purchaseRate)}</span>.
+                Item: <span className="text-slate-900 font-black">{selectedStock.itemName}</span> | 
+                Miller: <span className="text-slate-900 font-black">{selectedStock.millerName}</span> | 
+                Purchase Rate: <span className="text-amber-600 font-black">{formatCurrency(selectedStock.purchaseRate)}</span>
               </p>
             </div>
          </div>
@@ -211,7 +217,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Dispatch Quantity</Label>
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Quantity (Katte)</Label>
           <Input 
             type="number" 
             value={formData.katte} 
@@ -222,7 +228,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Commercial Rate</Label>
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Sale Rate</Label>
           <Input 
             type="number" 
             step="any" 
@@ -237,7 +243,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Bhardana Charge</Label>
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Bhardana Rate</Label>
           <Input 
             type="number" 
             step="any" 
@@ -248,7 +254,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Valuation Basis</Label>
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Rate Type</Label>
           <Select 
               value={formData.rateType} 
               onValueChange={value => setFormData({ ...formData, rateType: value as "per_kg" | "per_katta" })}
@@ -266,7 +272,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
 
       <div className="grid grid-cols-2 gap-6 p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-inner">
         <div className="space-y-2">
-          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Payment Condition</Label>
+          <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Payment Type</Label>
           <Select 
             value={formData.paymentType} 
             onValueChange={(value: 'cash' | 'credit') => setFormData({ ...formData, paymentType: value })}
@@ -282,7 +288,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
         </div>
         {formData.paymentType === 'credit' && (
           <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
-            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Payment Term (Days)</Label>
+            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Credit Days</Label>
             <Input
               type="number"
               min="0"
@@ -301,17 +307,17 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
           
           <div className="flex items-center gap-3 mb-6 relative z-10">
              <div className="h-2 w-2 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
-             <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Institutional Commercial Hub</h5>
+             <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Bill Summary</h5>
           </div>
 
           <div className="grid grid-cols-2 gap-y-8 relative z-10">
             <div className="flex flex-col gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Shipping Mass (Est)</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Weight</span>
               <span className="text-xl font-black text-slate-900 tracking-tighter leading-none">{totalWeight.toFixed(2)} KG</span>
             </div>
             
             <div className="flex flex-col items-end gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Projected Yield</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Profit / Loss</span>
               <span className={cn("text-xl font-black tabular-nums tracking-tighter leading-none", profit >= 0 ? "text-emerald-500" : "text-rose-500")}>
                 {formatCurrency(profit)}
               </span>
@@ -320,8 +326,8 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
             <div className="col-span-2 pt-6 border-t border-slate-100/50 mt-2">
                <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] underline decoration-amber-200 underline-offset-4 leading-none">Total Receivable Valuation:</span>
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Verified Digital Commercial Instrument</p>
+                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.2em] underline decoration-amber-200 underline-offset-4 leading-none">Total Bill Amount:</span>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">Final Amount to Receive</p>
                   </div>
                   <span className="text-4xl font-black text-slate-900 tracking-tighter leading-none drop-shadow-sm">{formatCurrency(totalAmount)}</span>
                </div>
@@ -332,7 +338,7 @@ export function CreateBillForm({ parties, stocks, onSuccess }: CreateBillFormPro
 
       <div className="flex gap-4 pt-2">
          <Button type="submit" className="h-14 flex-1 gold-gradient hover:opacity-90 text-white font-black rounded-2xl shadow-xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs" disabled={loading}>
-          {loading ? "Processing..." : "Authorize & Generate Invoice"}
+          {loading ? "Processing..." : "Create Bill"}
         </Button>
       </div>
     </form>

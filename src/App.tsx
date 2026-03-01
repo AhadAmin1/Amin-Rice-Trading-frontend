@@ -7,6 +7,7 @@ import { CashBook } from '@/components/cashbook/CashBook';
 import { LedgerSystem, PartyLedger } from '@/components/ledger/LedgerSystem';
 import { ProfitModule } from '@/components/profit/ProfitModule';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { dataStore } from '@/store/dataStore';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -14,6 +15,13 @@ import type { ViewType } from '@/types';
 import { Menu, Bell, Search, Settings, HelpCircle, Calendar, Package, ShieldCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Toaster } from 'sonner';
+import { DueNotifications } from '@/components/notifications/DueNotifications';
 import './App.css';
 
 function App() {
@@ -43,6 +51,14 @@ function App() {
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+
+  const [overdueItems, setOverdueItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = dataStore.onNotifications(setOverdueItems);
+    setOverdueItems(dataStore.getOverdueItems());
+    return () => unsubscribe();
+  }, []);
 
   const handleNavigate = (view: ViewType, partyId?: string) => {
     setCurrentView(view);
@@ -87,26 +103,23 @@ function App() {
 
   const getPageTitle = () => {
     switch (currentView) {
-      case 'dashboard': return { primary: 'Executive', secondary: 'Summary' };
-      case 'stock': return { primary: 'Inventory', secondary: 'Registry' };
-      case 'sales': return { primary: 'Commercial', secondary: 'Billing' };
-      case 'cashbook': return { primary: 'Capital', secondary: 'Ledger' };
-      case 'ledger': return { primary: 'Institutional', secondary: 'Khata' };
-      case 'party-ledger': return { primary: 'Account', secondary: 'Statement' };
-      case 'profit': return { primary: 'Yield', secondary: 'Analysis' };
-      default: return { primary: 'Business', secondary: 'Console' };
+      case 'dashboard': return { primary: 'Dashboard', secondary: 'Summary' };
+      case 'stock': return { primary: 'Stock', secondary: 'Inventory' };
+      case 'sales': return { primary: 'Sales', secondary: 'Billing' };
+      case 'cashbook': return { primary: 'Cash', secondary: 'Book' };
+      case 'ledger': return { primary: 'Accounts', secondary: 'Ledger' };
+      case 'party-ledger': return { primary: 'Party', secondary: 'Statement' };
+      case 'profit': return { primary: 'Profit', secondary: 'Analysis' };
+      default: return { primary: 'Rice', secondary: 'Trading' };
     }
   };
 
   const title = getPageTitle();
 
   return (
-    <div className="min-h-screen bg-[#fcfcfc] selection:bg-amber-100 selection:text-amber-900 overflow-x-hidden antialiased">
+    <div className="min-h-screen bg-slate-50 selection:bg-amber-100 selection:text-amber-900 overflow-x-hidden antialiased">
       {(isInitializing || isLoading) && <LoadingScreen />}
-      
-      {/* Dynamic Background elements */}
-      <div className="fixed top-0 right-0 w-[50vw] h-[50vh] bg-amber-500/5 rounded-full blur-[120px] -mr-40 -mt-20 pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[40vw] h-[40vh] bg-blue-500/5 rounded-full blur-[100px] -ml-20 -mb-20 pointer-events-none" />
+      <DueNotifications />
 
       {/* Sidebar - Premium Navigation */}
       <Sidebar 
@@ -117,10 +130,10 @@ function App() {
       />
 
       {/* Main Content Area */}
-      <main className="lg:ml-72 min-h-screen transition-all duration-300 relative z-10">
+      <main className="lg:ml-72 min-h-screen transition-all relative z-10">
         
-        {/* Top Bar - Ultra-Premium Glass Header */}
-        <header className="sticky top-0 z-30 premium-glass shelf-shadow px-6 sm:px-10 py-5">
+        {/* Top Bar - Standard Header */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 sm:px-10 py-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-8">
             
             {/* Page Title & Breadcrumb */}
@@ -134,12 +147,8 @@ function App() {
                 <Menu className="h-6 w-6 text-slate-700" />
               </Button>
               <div className="hidden sm:block">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="h-4 w-[1.5px] bg-amber-500 rounded-full" />
-                  <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest leading-none">Commercial OS v2.0</span>
-                </div>
                 <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-none">
-                  {title.primary} <span className="text-gold">{title.secondary}</span>
+                  {title.primary} <span className="text-amber-600 font-semibold">{title.secondary}</span>
                 </h1>
               </div>
             </div>
@@ -148,17 +157,73 @@ function App() {
             <div className="hidden xl:flex items-center relative flex-1 max-w-xl group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-amber-500 transition-colors" />
               <Input 
-                placeholder="Global search across entities, invoices, and ledgers..."
-                className="h-12 w-full pl-11 bg-white/30 backdrop-blur-md border border-white/40 rounded-2xl focus:ring-amber-500/10 focus:border-amber-200 transition-all font-medium text-slate-600 placeholder:text-slate-400"
+                placeholder="Search ledgers, bills, and stock..."
+                className="h-10 w-full pl-11 bg-slate-50 border-slate-200 rounded-lg focus:ring-amber-500/10 focus:border-amber-500 transition-all font-medium text-slate-600 placeholder:text-slate-400"
               />
             </div>
 
             {/* Utility Icons & Profile */}
             <div className="flex items-center gap-3 sm:gap-6">
               <div className="hidden md:flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 transition-all">
-                  <Bell className="h-5 w-5" />
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 transition-all relative">
+                      <Bell className="h-5 w-5" />
+                      {overdueItems.length > 0 && (
+                        <span className="absolute top-2 right-2 h-4 w-4 bg-rose-500 rounded-full border-2 border-white animate-pulse flex items-center justify-center">
+                           <span className="text-[7px] font-black text-white">{overdueItems.length}</span>
+                        </span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0 rounded-2xl shadow-2xl border-slate-200 overflow-hidden" align="end">
+                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                      <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-widest flex items-center gap-2">
+                        <Bell className="h-3 w-3" /> Overdue Alerts
+                      </h4>
+                      <Badge variant="outline" className="text-[9px] font-bold bg-white text-rose-600 border-rose-100">{overdueItems.length} Pending</Badge>
+                    </div>
+                    <div className="max-h-[350px] overflow-y-auto custom-scrollbar">
+                      {overdueItems.length === 0 ? (
+                        <div className="p-10 text-center">
+                          <ShieldCheck className="h-8 w-8 text-emerald-200 mx-auto mb-3" />
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All accounts are settled</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-slate-50">
+                          {overdueItems.map((item) => (
+                            <div 
+                              key={item.id} 
+                              className="p-4 hover:bg-slate-50 transition-colors cursor-pointer group"
+                              onClick={() => handleNavigate(item.type === 'sale' ? 'sales' : 'stock')}
+                            >
+                              <div className="flex justify-between items-start mb-1">
+                                <span className="text-[10px] font-black text-slate-900 group-hover:text-amber-600 transition-colors">{item.title}</span>
+                                <span className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter">Overdue</span>
+                              </div>
+                              <p className="text-[11px] font-bold text-slate-500 leading-tight mb-2">{item.party}</p>
+                              <div className="flex justify-between items-center">
+                                <span className="text-[11px] font-black text-slate-900 tabular-nums">RS {item.amount.toLocaleString()}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase">Due: {item.date}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {overdueItems.length > 0 && (
+                      <div className="p-3 bg-slate-50 border-t border-slate-100 text-center">
+                        <Button 
+                          variant="ghost" 
+                          className="w-full h-8 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-amber-600 hover:bg-white"
+                          onClick={() => handleNavigate('ledger')}
+                        >
+                          View Full Statement
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50/50 transition-all">
                   <HelpCircle className="h-5 w-5" />
                 </Button>
@@ -169,15 +234,13 @@ function App() {
 
               <div className="h-8 w-[1px] bg-slate-200/50 hidden sm:block mx-1" />
 
-              <div className="flex items-center gap-4 group cursor-pointer pl-1">
+              <div className="flex items-center gap-4 group cursor-pointer pl-1 px-3 py-1 rounded-lg hover:bg-slate-50">
                 <div className="text-right hidden xl:block">
-                  <p className="text-sm font-black text-slate-900 group-hover:text-amber-600 transition-colors">Amin Tradings</p>
-                  <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none mt-1">Authorized Official</p>
+                  <p className="text-sm font-bold text-slate-900">Amin Tradings</p>
+                  <p className="text-[10px] font-semibold text-emerald-600 uppercase leading-none mt-1">Admin Account</p>
                 </div>
-                <div className="h-12 w-12 rounded-2xl gold-gradient p-[1.5px] shadow-lg shadow-amber-500/10 active:scale-95 transition-all">
-                  <div className="h-full w-full rounded-[14px] bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/10">
-                    <span className="text-xs font-bold text-amber-500 tracking-tight">AR</span>
-                  </div>
+                <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center border border-amber-200">
+                  <span className="text-xs font-bold text-amber-700">AR</span>
                 </div>
               </div>
             </div>
@@ -186,21 +249,21 @@ function App() {
 
         {/* Dynamic Page Container */}
         <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto relative min-h-[calc(100vh-100px)]">
-           <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-4 no-scrollbar border-b border-slate-50">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-slate-100 shadow-sm shrink-0">
-                 <Calendar className="h-4 w-4 text-amber-500" />
-                 <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">
+            <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-4 no-scrollbar border-b border-slate-200">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white rounded-lg border border-slate-200 shadow-sm shrink-0">
+                 <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                 <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
                     {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                  </span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100 shadow-sm shrink-0">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 rounded-lg border border-emerald-100 shrink-0">
                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                 <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Server Sync Active</span>
+                 <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Synced</span>
               </div>
-              <div className="h-6 w-[1px] bg-slate-100 mx-2" />
-              <button onClick={() => handleNavigate('dashboard')} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", currentView === 'dashboard' ? "bg-amber-500 text-white shadow-lg" : "bg-slate-50 text-slate-400 hover:bg-slate-100")}>Monitor</button>
-              <button onClick={() => handleNavigate('stock')} className={cn("px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all", currentView === 'stock' ? "bg-amber-500 text-white shadow-lg" : "bg-slate-50 text-slate-400 hover:bg-slate-100")}>Logistics</button>
-           </div>
+              <div className="h-6 w-[1px] bg-slate-200 mx-2" />
+              <button onClick={() => handleNavigate('dashboard')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", currentView === 'dashboard' ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Dashboard</button>
+              <button onClick={() => handleNavigate('stock')} className={cn("px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all", currentView === 'stock' ? "bg-amber-600 text-white" : "bg-slate-100 text-slate-500 hover:bg-slate-200")}>Stock</button>
+            </div>
 
            {renderContent()}
         </div>
@@ -257,6 +320,7 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
+      <Toaster position="top-right" richColors closeButton />
     </div>
   );
 }

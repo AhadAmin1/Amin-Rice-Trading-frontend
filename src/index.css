@@ -23,14 +23,14 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 38 92% 50%;
-    --radius: 1rem;
-    --sidebar-background: 215 25% 15%; /* Deeper Slate Charcoal */
+    --radius: 0.5rem;
+    --sidebar-background: 215 25% 10%; /* Solid Slate */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary: 215 25% 20%;
     --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217 33% 25%;
+    --sidebar-accent: 215 25% 15%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 215 25% 20%;
+    --sidebar-border: 215 25% 15%;
     --sidebar-ring: 38 92% 50%;
   }
 
@@ -41,32 +41,14 @@
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white/70 backdrop-blur-sm border border-white/40 shadow-md;
-  }
-  .premium-glass {
-    @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-sm;
-  }
-  .gold-gradient {
-    @apply bg-gradient-to-br from-[#FFD700] via-[#FDB931] to-[#D4AF37];
-  }
-  .gold-glow {
-    box-shadow: 0 0 25px rgba(253, 185, 49, 0.25);
-  }
-  .text-gold {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#FDB931] to-[#FFD700] font-bold;
+  .standard-card {
+    @apply bg-white border border-slate-200 shadow-sm;
   }
   .shelf-shadow {
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
   .shadow-premium {
-    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
-  }
-  .floating-card {
-    @apply transition-all duration-500 hover:-translate-y-2 hover:shadow-premium active:scale-95;
-  }
-  .premium-gradient {
-    @apply bg-gradient-to-br from-slate-900 via-[#1e293b] to-slate-900;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -75,7 +57,7 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-slate-700/30 rounded-full hover:bg-amber-500/50 transition-colors;
+    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
   }
 }
 
