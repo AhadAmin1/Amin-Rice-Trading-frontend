@@ -20,6 +20,7 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
     buyerId: initialData?.buyerId || "",
     stockId: initialData?.stockId || "",
     katte: initialData?.katte?.toString() || "",
+    weight: initialData?.weight?.toString() || "",
     rate: initialData?.rate?.toString() || "",
     bhardanaRate: initialData?.bhardanaRate?.toString() || (initialData?.bhardana ? (initialData.bhardana / initialData.katte).toString() : ""),
     rateType: initialData?.rateType || "per_kg" as 'per_kg' | 'per_katta',
@@ -36,7 +37,8 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
   const rate = Number(formData.rate) || 0;
   const bhardanaRate = Number(formData.bhardanaRate) || 0;
   const bhardana = katte * bhardanaRate;
-  const totalWeight = selectedStock ? katte * selectedStock.weightPerKatta : 0;
+  // Use user-entered weight if provided, otherwise auto-calculate
+  const totalWeight = Number(formData.weight) || (selectedStock ? katte * selectedStock.weightPerKatta : 0);
   
   const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
   const totalAmount = rawAmount + bhardana;
@@ -74,6 +76,14 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
     }
   }, [stocks, initialData]);
 
+  // Auto-recalculate weight when katte or stock changes, unless user has manually edited weight
+  useEffect(() => {
+    if (selectedStock && formData.katte) {
+      const autoWeight = Number(formData.katte) * selectedStock.weightPerKatta;
+      setFormData(prev => ({ ...prev, weight: autoWeight.toFixed(2) }));
+    }
+  }, [formData.stockId, formData.katte]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -97,7 +107,7 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
       }
 
       const weightPerKatta = selectedStock.weightPerKatta;
-      const totalWeight = katte * weightPerKatta;
+      const totalWeight = Number(formData.weight) || katte * weightPerKatta;
       const bhardanaRate = Number(formData.bhardanaRate) || 0;
       const bhardana = katte * bhardanaRate;
       const rawAmount = formData.rateType === 'per_kg' ? totalWeight * Number(formData.rate) : katte * Number(formData.rate);
@@ -337,7 +347,17 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
           <div className="grid grid-cols-2 gap-y-8 relative z-10">
             <div className="flex flex-col gap-1">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Weight</span>
-              <span className="text-xl font-black text-slate-900 tracking-tighter leading-none">{totalWeight.toFixed(2)} KG</span>
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.weight}
+                  onChange={e => setFormData({ ...formData, weight: e.target.value })}
+                  className="w-28 text-xl font-black text-slate-900 tracking-tighter leading-none bg-transparent border-b-2 border-dashed border-amber-400 focus:outline-none focus:border-amber-600 text-right"
+                />
+                <span className="text-xs font-bold text-slate-400">KG</span>
+              </div>
+              <span className="text-[8px] text-slate-300 font-medium">Tap to edit</span>
             </div>
             
             <div className="flex flex-col items-end gap-1">

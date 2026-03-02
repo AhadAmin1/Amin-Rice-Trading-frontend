@@ -19,7 +19,6 @@ type Props = {
 };
 
 export default function EditStockForm({ stock, onSuccess }: Props) {
-  // ✅ safety guard (IMPORTANT)
   if (!stock || !stock.id) {
     return <p className="text-red-500">Invalid stock data</p>;
   }
@@ -40,6 +39,8 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     bhardanaRate: String(stock.bhardanaRate || 0),
     rateType: stock.rateType as "per_kg" | "per_katta",
     receiptNumber: stock.receiptNumber || '',
+    paymentType: (stock.paymentType || 'cash') as 'cash' | 'credit',
+    dueDays: String(stock.dueDays || 30),
   });
 
   const katte = Number(formData.katte) || 0;
@@ -47,14 +48,14 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
   const purchaseRate = Number(formData.purchaseRate) || 0;
   const bhardanaRate = Number(formData.bhardanaRate) || 0;
   const bhardana = katte * bhardanaRate;
-
   const totalWeight = katte * weightPerKatta;
-  
   const rawAmount = formData.rateType === "per_kg"
-      ? totalWeight * purchaseRate
-      : katte * purchaseRate;
-      
+    ? totalWeight * purchaseRate
+    : katte * purchaseRate;
   const totalAmount = rawAmount + bhardana;
+
+  const formatCurrency = (amount: number) =>
+    `RS ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(amount)}`;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,8 +63,12 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     const miller = millers.find(m => m.id === formData.millerId);
     if (!miller) return;
 
-    // ✅ id guaranteed here
-    await dataStore.updateStock(stock.id, {
+    const days = formData.paymentType === 'credit' ? Number(formData.dueDays) : 3;
+    const dueDate = new Date(
+      new Date(formData.date).getTime() + days * 24 * 60 * 60 * 1000
+    ).toISOString().split('T')[0];
+
+    const payload = {
       date: formData.date,
       millerId: miller.id,
       millerName: miller.name,
@@ -77,43 +82,42 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       rateType: formData.rateType,
       totalAmount,
       receiptNumber: formData.receiptNumber,
+      paymentType: formData.paymentType,
+      dueDays: days,
+      dueDate,
+    };
 
-      // 🔴 keep existing remaining values
-      remainingKatte: stock.remainingKatte,
-      remainingWeight: stock.remainingWeight,
-    });
-
+    await dataStore.updateStock(stock.id, payload);
     onSuccess();
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>Date</Label>
+    <form onSubmit={handleSubmit} className="space-y-6 pt-2">
+
+      {/* Row 1: Date + Miller */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-xs font-extrabold uppercase text-slate-700 ml-1">Arrival Date</Label>
           <Input
             type="date"
+            className="h-12 rounded-xl bg-slate-50 border-slate-300 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-slate-900"
             value={formData.date}
-            onChange={e =>
-              setFormData({ ...formData, date: e.target.value })
-            }
+            onChange={e => setFormData({ ...formData, date: e.target.value })}
+            required
           />
         </div>
-
-        <div className="space-y-1">
-          <Label>Miller</Label>
+        <div className="space-y-2">
+          <Label className="text-xs font-extrabold uppercase text-slate-700 ml-1">Miller / Party</Label>
           <Select
             value={formData.millerId}
-            onValueChange={value =>
-              setFormData({ ...formData, millerId: value })
-            }
+            onValueChange={value => setFormData({ ...formData, millerId: value })}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select miller" />
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-300 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-slate-900">
+              <SelectValue placeholder="Select Miller" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-2xl border-slate-200 shadow-2xl">
               {millers.map(m => (
-                <SelectItem key={m.id} value={m.id}>
+                <SelectItem key={m.id} value={m.id} className="rounded-xl my-1 focus:bg-amber-50 focus:text-amber-700 font-bold">
                   {m.name}
                 </SelectItem>
               ))}
@@ -122,142 +126,159 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>Item</Label>
+      {/* Row 2: Item + Receipt Number */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Item Name</Label>
           <Input
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.itemName}
-            onChange={e =>
-              setFormData({ ...formData, itemName: e.target.value })
-            }
+            onChange={e => setFormData({ ...formData, itemName: e.target.value })}
+            required
           />
         </div>
-        <div className="space-y-1">
-          <Label>Receipt Number</Label>
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Receipt Number</Label>
           <Input
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold font-mono"
             value={formData.receiptNumber}
-            onChange={e =>
-              setFormData({ ...formData, receiptNumber: e.target.value })
-            }
+            onChange={e => setFormData({ ...formData, receiptNumber: e.target.value })}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>Katte</Label>
+      {/* Row 3: Katte + Weight per Katta */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Total Katte</Label>
           <Input
             type="number"
+            min="1"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.katte}
-            onChange={e =>
-              setFormData({ ...formData, katte: e.target.value })
-            }
+            onChange={e => setFormData({ ...formData, katte: e.target.value })}
+            required
           />
         </div>
-
-        <div className="space-y-1">
-          <Label>Weight per Katta (kg)</Label>
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Weight per Katta (kg)</Label>
           <Input
             type="number"
             step="any"
+            min="0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.weightPerKatta}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                weightPerKatta: e.target.value,
-              })
-            }
+            onChange={e => setFormData({ ...formData, weightPerKatta: e.target.value })}
+            required
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label>Rate</Label>
+      {/* Row 4: Purchase Rate + Bhardana Rate */}
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Purchase Rate</Label>
           <Input
             type="number"
             step="any"
+            min="0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-amber-600"
             value={formData.purchaseRate}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                purchaseRate: e.target.value,
-              })
-            }
+            onChange={e => setFormData({ ...formData, purchaseRate: e.target.value })}
+            required
           />
         </div>
-
-         <div className="space-y-1">
-          <Label>Bhardana (per Katta)</Label>
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Bhardana Rate (per Katta)</Label>
           <Input
             type="number"
             step="any"
+            min="0"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
             value={formData.bhardanaRate}
-            onChange={e =>
-              setFormData({
-                ...formData,
-                bhardanaRate: e.target.value,
-              })
-            }
+            onChange={e => setFormData({ ...formData, bhardanaRate: e.target.value })}
           />
         </div>
       </div>
-      
-      <div className="space-y-1">
-          <Label>Rate Type</Label>
+
+      {/* Row 5: Rate Type */}
+      <div className="space-y-2">
+        <Label className="text-xs font-black uppercase text-slate-500 ml-1">Rate Type</Label>
+        <Select
+          value={formData.rateType}
+          onValueChange={(v: "per_kg" | "per_katta") => setFormData({ ...formData, rateType: v })}
+        >
+          <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="rounded-2xl">
+            <SelectItem value="per_kg" className="rounded-xl my-1">Calculate Per KG</SelectItem>
+            <SelectItem value="per_katta" className="rounded-xl my-1">Calculate Per Katta</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Row 6: Payment Type + Credit Days */}
+      <div className="grid grid-cols-2 gap-6 p-4 bg-slate-100/50 rounded-2xl border border-slate-200/50 shadow-inner">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment Type</Label>
           <Select
-            value={formData.rateType}
-            onValueChange={(v: "per_kg" | "per_katta") =>
-              setFormData({ ...formData, rateType: v })
-            }
+            value={formData.paymentType}
+            onValueChange={(value: 'cash' | 'credit') => setFormData({ ...formData, paymentType: value })}
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="per_kg">Per Kg</SelectItem>
-              <SelectItem value="per_katta">Per Katta</SelectItem>
+            <SelectContent className="rounded-2xl shadow-2xl border-none">
+              <SelectItem value="cash" className="rounded-xl my-1">Immediate Cash</SelectItem>
+              <SelectItem value="credit" className="rounded-xl my-1">Credit (Udhar)</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        {formData.paymentType === 'credit' && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Credit Days</Label>
+            <Input
+              type="number"
+              min="0"
+              placeholder="e.g. 30"
+              className="h-12 rounded-xl bg-white border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold"
+              value={formData.dueDays}
+              onChange={e => setFormData({ ...formData, dueDays: e.target.value })}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Preview */}
-      <div className="bg-slate-50 p-4 rounded-lg text-sm space-y-1">
-        <div className="flex justify-between">
-          <span>Receipt Number</span>
-          <b className="text-blue-600 font-mono">{formData.receiptNumber || 'N/A'}</b>
+      {/* Summary Preview */}
+      <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="h-2 w-2 rounded-full bg-amber-500" />
+          <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Transaction Summary</h5>
         </div>
-        <div className="flex justify-between">
-          <span>Total Weight</span>
-          <b>{totalWeight.toFixed(0)} kg</b>
-        </div>
-         <div className="flex justify-between">
-          <span>Bhardana</span>
-          <b>
-            {new Intl.NumberFormat("en-PK", {
-              style: "currency",
-              currency: "PKR",
-              maximumFractionDigits: 0,
-            }).format(bhardana)}
-          </b>
-        </div>
-        <div className="flex justify-between">
-          <span>Total Amount</span>
-          <b>
-            {new Intl.NumberFormat("en-PK", {
-              style: "currency",
-              currency: "PKR",
-              maximumFractionDigits: 0,
-            }).format(totalAmount)}
-          </b>
+        <div className="grid grid-cols-2 gap-y-3 text-sm">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
+            <span className="text-base font-bold text-slate-900">{totalWeight.toFixed(2)} KG</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bhardana</span>
+            <span className="text-base font-bold text-slate-900">{formatCurrency(bhardana)}</span>
+          </div>
+          <div className="col-span-2 pt-3 border-t border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Net Payable:</span>
+              <span className="text-2xl font-bold text-slate-900">{formatCurrency(totalAmount)}</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <Button
         type="submit"
-        className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+        className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-white font-black rounded-2xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-xs"
       >
-        Update Stock
+        Update Stock Record
       </Button>
     </form>
   );

@@ -33,23 +33,53 @@ export function DirectPaymentDialog({ open, onOpenChange, type, item, partyName,
 
     try {
         if (type === 'receive') {
+            // Payment received FROM buyer for a bill
             const bill = item as Bill;
             const linkRef = bill.billNumber.startsWith('B-') ? bill.billNumber : `B-${bill.billNumber}`;
+            const particulars = description || `Payment received - ${linkRef}`;
+
+            // 1. Add ledger entry linked to this bill (credit decreases buyer's debt)
+            await dataStore.addLedgerEntry({
+              partyId: bill.buyerId,
+              billId: bill.id,
+              date,
+              particulars,
+              billNo: linkRef,
+              debit: 0,
+              credit: numAmount,
+            });
+
+            // 2. Add cash book entry (NO #B- pattern to avoid Smart Linking double-entry)
             await dataStore.addCashEntry({
               date,
               type: 'in',
-              description: `Received from ${partyName} - ${description || 'Payment'} #${linkRef}`,
+              description: `Received from ${partyName} - ${particulars} [${linkRef}]`,
               debit: 0,
               credit: numAmount,
-              billId: bill.id
             });
+
         } else {
+            // Payment made TO miller for a stock
             const stock = item as StockItem;
             const linkRef = stock.receiptNumber;
+            const particulars = description || `Payment to miller - ${linkRef}`;
+
+            // 1. Add ledger entry linked to this stock (credit reduces miller's payable)
+            await dataStore.addLedgerEntry({
+              partyId: stock.millerId,
+              stockId: stock.id,
+              date,
+              particulars,
+              billNo: linkRef,
+              debit: 0,
+              credit: numAmount,
+            });
+
+            // 2. Add cash book entry (NO #S- pattern to avoid Smart Linking double-entry)
             await dataStore.addCashEntry({
               date,
               type: 'out',
-              description: `Payment to ${partyName} - ${description || 'Payment'} #${linkRef}`,
+              description: `Payment to ${partyName} - ${particulars} [${linkRef}]`,
               debit: numAmount,
               credit: 0,
             });

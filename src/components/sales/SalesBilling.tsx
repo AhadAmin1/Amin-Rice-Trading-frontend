@@ -17,13 +17,14 @@ import type { Bill, Party, StockItem } from '@/types';
 import { BillsTable } from './BillsTable';
 import { CreateBillForm } from './CreateBillForm';
 import { BillView } from './BillView';
-import { PaymentForm } from '../ledger/LedgerSystem';
+import { DirectPaymentDialog } from '../DirectPaymentDialog';
 import { cn } from '@/lib/utils';
 
 export default function SalesBilling() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [parties, setParties] = useState<Party[]>([]);
   const [stocks, setStocks] = useState<StockItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -58,6 +59,18 @@ export default function SalesBilling() {
     pendingReceivables: bills.reduce((sum, b) => sum + (b.totalAmount - (b.paidAmount || 0)), 0),
     totalInvoices: bills.length,
   };
+
+  const filteredBills = bills.filter(bill => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      bill.billNumber?.toLowerCase().includes(query) ||
+      bill.buyerName.toLowerCase().includes(query) ||
+      bill.millerName.toLowerCase().includes(query) ||
+      bill.itemName.toLowerCase().includes(query) || 
+      bill.totalAmount.toString().includes(query)
+    );
+  });
 
   const formatCurrency = (amount: number) => {
     return `RS ${new Intl.NumberFormat('en-PK', {
@@ -156,6 +169,8 @@ export default function SalesBilling() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 h-10 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
               />
             </div>
@@ -164,7 +179,7 @@ export default function SalesBilling() {
           <div className="p-2">
             <TabsContent value="all" className="m-0 focus-visible:outline-none focus-visible:ring-0">
               <BillsTable 
-                bills={bills} 
+                bills={filteredBills} 
                 onView={setViewBill} 
                 onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
@@ -174,7 +189,7 @@ export default function SalesBilling() {
             </TabsContent>
             <TabsContent value="unpaid" className="m-0 focus-visible:outline-none focus-visible:ring-0">
               <BillsTable 
-                bills={bills.filter(b => b.status !== 'paid')} 
+                bills={filteredBills.filter(b => b.status !== 'paid')} 
                 onView={setViewBill} 
                 onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
@@ -184,7 +199,7 @@ export default function SalesBilling() {
             </TabsContent>
             <TabsContent value="paid" className="m-0 focus-visible:outline-none focus-visible:ring-0">
               <BillsTable 
-                bills={bills.filter(b => b.status === 'paid')} 
+                bills={filteredBills.filter(b => b.status === 'paid')} 
                 onView={setViewBill} 
                 onEdit={setEditBill} 
                 onDelete={(id) => dataStore.deleteBill(id)}
@@ -208,22 +223,18 @@ export default function SalesBilling() {
       </Dialog>
 
       {/* Global Payment Portal */}
-      <Dialog open={!!showPayment} onOpenChange={() => setShowPayment(null)}>
-        <DialogContent className="max-w-lg rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-           <div className="bg-slate-900 p-6 text-white">
-             <DialogTitle className="text-2xl font-black tracking-tight uppercase">Payment Reconciliation</DialogTitle>
-             <DialogDescription className="text-slate-400 text-sm mt-1">Settle outstanding balances for {showPayment?.buyerName}.</DialogDescription>
-           </div>
-          <div className="p-6 bg-white">
-            {showPayment && parties.find(p => p.id === showPayment.buyerId) && (
-              <PaymentForm 
-                party={parties.find(p => p.id === showPayment.buyerId)!}
-                onSuccess={() => setShowPayment(null)}
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      <DirectPaymentDialog
+        open={!!showPayment}
+        onOpenChange={(open) => !open && setShowPayment(null)}
+        type="receive"
+        item={showPayment}
+        partyId={showPayment?.buyerId || ''}
+        partyName={showPayment?.buyerName || ''}
+        onSuccess={() => {
+          setShowPayment(null);
+          loadData();
+        }}
+      />
 
       {/* Edit Bill Portal */}
       <Dialog open={!!editBill} onOpenChange={() => setEditBill(null)}>
