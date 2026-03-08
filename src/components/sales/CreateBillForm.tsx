@@ -27,6 +27,7 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
     billNo: initialData?.billNumber || "",
     paymentType: initialData?.paymentType || 'cash' as 'cash' | 'credit',
     dueDays: initialData?.dueDays?.toString() || '0',
+    minusWeight: initialData?.minusWeight?.toString() || '0', 
     date: initialData ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
   });
 
@@ -43,9 +44,20 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
   const rawAmount = formData.rateType === 'per_kg' ? totalWeight * rate : katte * rate;
   const totalAmount = rawAmount + bhardana;
   
-  const purchaseCost = selectedStock 
-    ? totalWeight * (selectedStock.totalAmount / selectedStock.totalWeight)
+  const stockRatePerKg = selectedStock 
+    ? (selectedStock.rateType === 'per_kg' ? selectedStock.purchaseRate : selectedStock.purchaseRate / selectedStock.weightPerKatta)
     : 0;
+
+  const purchaseCost = selectedStock 
+    ? (selectedStock.rateType === 'per_kg' 
+        ? katte * selectedStock.weightPerKatta * selectedStock.purchaseRate 
+        : katte * selectedStock.purchaseRate) 
+      + (katte * (selectedStock.bhardanaRate || 0))
+    : 0;
+
+  const normalWeight = selectedStock ? katte * selectedStock.weightPerKatta : 0;
+  const weightGain = Math.max(0, totalWeight - normalWeight);
+  const weightGainProfit = weightGain * stockRatePerKg;
   const profit = totalAmount - purchaseCost;
 
   const formatCurrency = (amount: number) => {
@@ -76,13 +88,15 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
     }
   }, [stocks, initialData]);
 
-  // Auto-recalculate weight when katte or stock changes, unless user has manually edited weight
+  // Auto-recalculate weight ONLY for new bills when katte or stock changes
   useEffect(() => {
-    if (selectedStock && formData.katte) {
-      const autoWeight = Number(formData.katte) * selectedStock.weightPerKatta;
-      setFormData(prev => ({ ...prev, weight: autoWeight.toFixed(2) }));
+    if (!initialData && selectedStock && formData.katte) {
+      const grossWeight = Number(formData.katte) * selectedStock.weightPerKatta;
+      const deduction = Number(formData.katte) * (Number(formData.minusWeight) || 0);
+      const autoWeight = (grossWeight - deduction).toFixed(2);
+      setFormData(prev => ({ ...prev, weight: autoWeight }));
     }
-  }, [formData.stockId, formData.katte]);
+  }, [formData.stockId, formData.katte, formData.minusWeight, initialData, selectedStock]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,12 +122,23 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
 
       const weightPerKatta = selectedStock.weightPerKatta;
       const totalWeight = Number(formData.weight) || katte * weightPerKatta;
-      const bhardanaRate = Number(formData.bhardanaRate) || 0;
       const bhardana = katte * bhardanaRate;
       const rawAmount = formData.rateType === 'per_kg' ? totalWeight * Number(formData.rate) : katte * Number(formData.rate);
       const totalAmount = rawAmount + bhardana;
-      const costPerKg = selectedStock.totalAmount / selectedStock.totalWeight;
-      const calculatedPurchaseCost = totalWeight * costPerKg;
+      
+      const stockBuyRatePerKg = selectedStock.rateType === 'per_kg' 
+        ? selectedStock.purchaseRate 
+        : selectedStock.purchaseRate / (selectedStock.weightPerKatta || 50);
+
+      const calculatedPurchaseCost = (selectedStock.rateType === 'per_kg' 
+        ? katte * selectedStock.weightPerKatta * selectedStock.purchaseRate 
+        : katte * selectedStock.purchaseRate) 
+        + (katte * (selectedStock.bhardanaRate || 0));
+
+      const normalWeight = katte * selectedStock.weightPerKatta;
+      const weightGain = Math.max(0, totalWeight - normalWeight);
+      const weightGainProfit = weightGain * stockBuyRatePerKg;
+
       const profit = totalAmount - calculatedPurchaseCost;
 
       const days = formData.paymentType === 'credit' ? Number(formData.dueDays) : 3;
@@ -137,7 +162,9 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
         rateType: formData.rateType,
         totalAmount,
         purchaseCost: calculatedPurchaseCost,
+        weightGainProfit,
         profit,
+        minusWeight: Number(formData.minusWeight) || 0,
         billNumber: formData.billNo || undefined,
         paymentType: formData.paymentType,
         dueDays: days,
@@ -357,14 +384,39 @@ export function CreateBillForm({ parties, stocks, initialData, onSuccess }: Crea
                 />
                 <span className="text-xs font-bold text-slate-400">KG</span>
               </div>
-              <span className="text-[8px] text-slate-300 font-medium">Tap to edit</span>
+              <span className="text-[8px] text-slate-300 font-medium">Tap to edit Gross</span>
             </div>
-            
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Profit / Loss</span>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-rose-400 uppercase tracking-widest leading-none">Minus Weight</span>
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.minusWeight}
+                  onChange={e => setFormData({ ...formData, minusWeight: e.target.value })}
+                  className="w-20 text-lg font-black text-rose-600 tracking-tighter leading-none bg-transparent border-b-2 border-dashed border-rose-300 focus:outline-none focus:border-rose-500 text-right"
+                />
+                <span className="text-xs font-bold text-slate-400">KG</span>
+              </div>
+              <span className="text-[8px] text-slate-300 font-medium">Bag deduction</span>
+            </div>
+
+            <div className="flex flex-col items-end gap-1 col-span-2 md:col-span-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Net Profit</span>
               <span className={cn("text-xl font-black tabular-nums tracking-tighter leading-none", profit >= 0 ? "text-emerald-500" : "text-rose-500")}>
                 {formatCurrency(profit)}
               </span>
+              {weightGainProfit > 0 && (
+                <span className="text-[9px] font-black text-emerald-500 uppercase flex items-center gap-1 mt-1">
+                   Gain: +{formatCurrency(weightGainProfit)}
+                </span>
+              )}
+            </div>
+
+            <div className="col-span-2 flex justify-between items-center py-3 border-t border-slate-100/50 mt-1">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bhardana Total</span>
+               <span className="text-sm font-bold text-slate-900">{formatCurrency(bhardana)}</span>
             </div>
 
             <div className="col-span-2 pt-6 border-t border-slate-100/50 mt-2">

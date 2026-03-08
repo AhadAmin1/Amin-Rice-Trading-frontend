@@ -91,7 +91,7 @@ export function StockManagement() {
         </div>
       </div>
 
-      <StatsCards stock={stock} />
+      <StatsCards stock={stock} bills={bills} />
 
       {/* Filter & View Controls */}
       <div className="space-y-4">
@@ -213,7 +213,7 @@ export function StockManagement() {
   );
 }
 
-function StatsCards({ stock }: { stock: StockItem[] }) {
+function StatsCards({ stock, bills }: { stock: StockItem[], bills: Bill[] }) {
   const formatCurrency = (amount: number) => {
     return `RS ${new Intl.NumberFormat('en-PK', {
       maximumFractionDigits: 0,
@@ -226,57 +226,91 @@ function StatsCards({ stock }: { stock: StockItem[] }) {
   const totalPaid = stock.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
   const totalBalance = totalPurchases - totalPaid;
 
+  const inventoryGainValue = stock.reduce((sum, s) => {
+    const standardWeight = (s.remainingKatte || 0) * (s.weightPerKatta || 50);
+    const weightGap = (s.remainingWeight || 0) - standardWeight;
+    const sBuyRatePerKg = s.rateType === 'per_kg' ? s.purchaseRate : s.purchaseRate / (s.weightPerKatta || 50);
+    
+    if (weightGap > 0) {
+      // Surplus weight in remaining bags (Unrealized)
+      return sum + (weightGap * sBuyRatePerKg);
+    } else if (s.remainingWeight < 0) {
+      // Oversold weight: Use average selling rate for accurate gain valuation
+      const stockBills = bills.filter(b => String(b.stockId) === String(s.id));
+      const totalWeightSold = stockBills.reduce((acc, b) => acc + (b.weight || 0), 0);
+      const totalAmountSold = stockBills.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+      const avgSellingRate = totalWeightSold > 0 ? (totalAmountSold / totalWeightSold) : sBuyRatePerKg;
+
+      return sum + (Math.abs(s.remainingWeight) * avgSellingRate);
+    }
+    return sum;
+  }, 0);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm transition-all hover:bg-slate-50 cursor-pointer group">
+        <div className="flex items-center justify-between mb-3">
           <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
-            <Package className="h-5 w-5" />
+            <Package className="h-4 w-4" />
           </div>
-          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Remaining Stock</span>
+          <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Remaining Stock</span>
         </div>
         <div className="space-y-1">
-          <h4 className="text-2xl font-bold text-slate-950 tabular-nums">{remainingKatte} <span className="text-xs font-bold text-slate-500">KT</span></h4>
-          <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest pl-1">Total Pool: {totalKatte} KT</p>
+          <h4 className="text-xl font-bold text-slate-950 tabular-nums">{remainingKatte} <span className="text-xs font-bold text-slate-400">KT</span></h4>
+          <p className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest pl-0.5">Pool: {totalKatte} KT</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-blue-500">
+        <div className="flex items-center justify-between mb-3">
           <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-            <TrendingUp className="h-5 w-5" />
+            <TrendingUp className="h-4 w-4" />
           </div>
-          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Weight Total</span>
+          <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Weight Balance</span>
         </div>
         <div className="space-y-1">
-          <h4 className="text-2xl font-bold text-blue-600 tabular-nums">
+          <h4 className="text-xl font-bold text-blue-600 tabular-nums">
             {stock.reduce((sum, s) => sum + (s.remainingWeight || 0), 0).toLocaleString()}
             <span className="text-xs ml-1 text-slate-400 font-bold uppercase">KG</span>
           </h4>
+          <p className="text-[8px] font-bold text-slate-400 uppercase italic">Net warehouse weight</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600">
-            <Wallet className="h-5 w-5" />
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm border-l-4 border-l-emerald-500 bg-emerald-50/10">
+        <div className="flex items-center justify-between mb-3">
+          <div className="p-2 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100">
+            <TrendingUp className="h-4 w-4" />
           </div>
-          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Paid Amount</span>
+          <span className="text-[9px] font-extrabold text-emerald-600 uppercase tracking-wider">Surplus Gains</span>
         </div>
         <div className="space-y-1">
-          <h4 className="text-2xl font-bold text-emerald-600 tabular-nums">{formatCurrency(totalPaid)}</h4>
+          <h4 className="text-xl font-bold text-emerald-700 tabular-nums">{formatCurrency(inventoryGainValue)}</h4>
+          <p className="text-[8px] font-black text-emerald-500 uppercase tracking-tighter italic">Profit from extra weight</p>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="p-2 rounded-lg bg-slate-50 text-slate-600">
+            <Wallet className="h-4 w-4" />
+          </div>
+          <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Paid Amount</span>
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-xl font-bold text-slate-900 tabular-nums">{formatCurrency(totalPaid)}</h4>
+        </div>
+      </div>
+
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
           <div className="p-2 rounded-lg bg-rose-50 text-rose-600">
-            <ArrowUpRight className="h-5 w-5" />
+            <ArrowUpRight className="h-4 w-4" />
           </div>
-          <span className="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider">Outstanding</span>
+          <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider">Outstanding</span>
         </div>
         <div className="space-y-1">
-          <h4 className="text-2xl font-bold text-rose-600 tabular-nums">{formatCurrency(totalBalance)}</h4>
+          <h4 className="text-xl font-bold text-rose-600 tabular-nums">{formatCurrency(totalBalance)}</h4>
         </div>
       </div>
     </div>
@@ -320,7 +354,19 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
     receiptNumber: '',
     paymentType: 'cash' as 'cash' | 'credit',
     dueDays: '0',
+    totalWeight: '', 
+    minusWeight: '0', 
   });
+
+  // Auto-calculate weight when katte or weightPerKatta changes
+  useEffect(() => {
+    if (formData.katte && formData.weightPerKatta) {
+      const grossWeight = Number(formData.katte) * Number(formData.weightPerKatta);
+      const deduction = Number(formData.katte) * (Number(formData.minusWeight) || 0);
+      const calculatedWeight = (grossWeight - deduction).toFixed(2);
+      setFormData(prev => ({ ...prev, totalWeight: calculatedWeight }));
+    }
+  }, [formData.katte, formData.weightPerKatta, formData.minusWeight]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,7 +377,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
     const katte = Number(formData.katte);
     const weightPerKatta = Number(formData.weightPerKatta);
     const purchaseRate = Number(formData.purchaseRate);
-    const totalWeight = katte * weightPerKatta;
+    const totalWeight = Number(formData.totalWeight) || (katte * weightPerKatta);
     
     const totalAmount = formData.rateType === 'per_kg' 
       ? totalWeight * purchaseRate 
@@ -353,6 +399,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
       totalAmount,
       bhardanaRate: Number(formData.bhardanaRate) || 0,
       bhardana: katte * (Number(formData.bhardanaRate) || 0),
+      minusWeight: Number(formData.minusWeight) || 0,
       receiptNumber: formData.receiptNumber || nextReceiptHint || undefined,
       paymentType: formData.paymentType,
       dueDays: days,
@@ -478,6 +525,18 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
 
       <div className="grid grid-cols-2 gap-6">
         <div className="space-y-2">
+          <Label htmlFor="minusWeight" className="text-xs font-black uppercase text-slate-500 ml-1">Minus Weight (Per Bag)</Label>
+          <Input
+            id="minusWeight"
+            type="number"
+            step="any"
+            placeholder="e.g. 0.7"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-rose-500"
+            value={formData.minusWeight}
+            onChange={(e) => setFormData({ ...formData, minusWeight: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="bhardanaRate" className="text-xs font-black uppercase text-slate-500 ml-1">Bhardana Rate</Label>
           <Input
             id="bhardanaRate"
@@ -490,7 +549,10 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
             onChange={(e) => setFormData({ ...formData, bhardanaRate: e.target.value })}
           />
         </div>
-        <div className="space-y-2">
+      </div>
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2 col-span-2">
           <Label htmlFor="rateType" className="text-xs font-black uppercase text-slate-500 ml-1">Rate Type</Label>
           <Select 
             value={formData.rateType} 
@@ -548,12 +610,29 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
           </div>
           
           <div className="grid grid-cols-2 gap-y-4 text-sm">
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Tonnage</span>
-              <span className="text-lg font-bold text-slate-900 tabular-nums">{(Number(formData.katte) * Number(formData.weightPerKatta)).toFixed(2)} KG</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Weight</span>
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="any"
+                  value={formData.totalWeight}
+                  onChange={e => setFormData({ ...formData, totalWeight: e.target.value })}
+                  className="w-28 text-xl font-black text-slate-900 tracking-tighter leading-none bg-transparent border-b-2 border-dashed border-amber-400 focus:outline-none focus:border-amber-600 text-right"
+                />
+                <span className="text-xs font-bold text-slate-400">KG</span>
+              </div>
+              <span className="text-[8px] text-slate-300 font-medium">Tap to edit</span>
             </div>
             
-            <div className="flex flex-col items-end">
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Purchase Rate</span>
+              <span className="text-xl font-black text-amber-600 tracking-tighter leading-none tabular-nums">
+                {formatCurrency(Number(formData.purchaseRate))}
+              </span>
+            </div>
+
+            <div className="flex flex-col items-start">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bhardana Total</span>
               <span className="text-lg font-bold text-slate-900 tabular-nums">
                 {formatCurrency(Number(formData.katte) * (Number(formData.bhardanaRate) || 0))}
@@ -568,7 +647,7 @@ function AddStockForm({ onSuccess }: { onSuccess: (stock: StockItem) => void }) 
                 <span className="text-3xl font-bold text-slate-900 tabular-nums">
                   {formatCurrency(
                     (formData.rateType === 'per_kg'
-                      ? Number(formData.katte) * Number(formData.weightPerKatta) * Number(formData.purchaseRate)
+                      ? Number(formData.totalWeight) * Number(formData.purchaseRate)
                       : Number(formData.katte) * Number(formData.purchaseRate)) + (Number(formData.katte) * (Number(formData.bhardanaRate) || 0))
                   )}
                 </span>

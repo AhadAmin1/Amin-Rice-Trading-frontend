@@ -80,7 +80,7 @@ export function StockTable({
             stock
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((item) => (
-                <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100 cursor-pointer">
                   <TableCell className="py-4 px-4 font-semibold text-slate-600 text-xs">
                     {item.date}
                   </TableCell>
@@ -108,8 +108,33 @@ export function StockTable({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-col items-end">
-                      <span className="font-bold text-blue-600 text-xs">{item.remainingWeight?.toLocaleString()}</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase">KG</span>
+                      <span className={cn(
+                        "font-bold text-xs",
+                        (item.remainingWeight || 0) < 0 ? "text-emerald-600" : "text-blue-600"
+                      )}>
+                        {(item.remainingWeight || 0) < 0 ? `+${Math.abs(item.remainingWeight).toLocaleString()}` : item.remainingWeight?.toLocaleString()}
+                      </span>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">
+                        {(item.remainingWeight || 0) < 0 ? 'KG GAIN' : 'KG'}
+                      </span>
+                      {(item.remainingWeight || 0) < 0 && (() => {
+                        const stockBills = bills.filter(b => String(b.stockId) === String(item.id));
+                        const totalWeightSold = stockBills.reduce((acc, b) => acc + (b.weight || 0), 0);
+                        const totalAmountSold = stockBills.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+                        const perKgBuyRate = item.rateType === 'per_kg' ? item.purchaseRate : item.purchaseRate / (item.weightPerKatta || 50);
+                        const avgSellingRate = totalWeightSold > 0 ? (totalAmountSold / totalWeightSold) : perKgBuyRate;
+                        
+                        return (
+                          <div className="flex flex-col items-end mt-0.5">
+                            <span className="text-[8px] font-black text-emerald-500 uppercase leading-none">
+                              Gain: {formatCurrency(Math.abs(item.remainingWeight) * avgSellingRate)}
+                            </span>
+                            <span className="text-[7px] font-bold text-slate-400 leading-none">
+                              @ {formatCurrency(avgSellingRate)} AVG SALE
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </TableCell>
                   <TableCell>

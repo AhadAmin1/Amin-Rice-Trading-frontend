@@ -170,7 +170,7 @@ function PartiesGrid({
         const isExpense = party.type === 'Expense';
 
         return (
-          <div key={party.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+          <div key={party.id} className="bg-white p-6 rounded-lg border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full cursor-pointer">
             <div className="flex items-start justify-between mb-6 gap-2">
               <div className="flex items-start gap-4 flex-1 min-w-0">
                 <div className={cn(
@@ -548,7 +548,7 @@ export function PartyLedger({ partyId, onBack }: { partyId: string; onBack: () =
               <TableRow><TableCell colSpan={7} className="text-center py-16 text-slate-400 font-bold uppercase tracking-widest text-[10px]">No data found</TableCell></TableRow>
             ) : (
               entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((entry) => (
-                <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors">
+                <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors cursor-pointer">
                   <TableCell className="py-4 px-6 font-bold text-slate-900 tabular-nums text-xs">
                     {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>

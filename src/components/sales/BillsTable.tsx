@@ -73,7 +73,7 @@ export function BillsTable({ bills, onView, onEdit, onDelete, onWhatsApp, onPaym
               const balance = bill.totalAmount - (bill.paidAmount || 0);
               
               return (
-                <TableRow key={bill.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100">
+                <TableRow key={bill.id} className="hover:bg-slate-50 transition-colors border-b border-slate-100 cursor-pointer">
                   <TableCell className="py-4 px-4 font-semibold text-slate-600 text-xs">
                     {new Date(bill.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   </TableCell>

@@ -88,7 +88,7 @@ export function Sidebar({ currentView, onViewChange, isOpen, onToggle }: Sidebar
                   if (isOpen) onToggle();
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left group outline-none mb-1",
+                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-left group outline-none mb-1 cursor-pointer",
                   isActive 
                     ? "bg-amber-600 text-white shadow-md" 
                     : "text-slate-400 hover:text-white hover:bg-slate-800"

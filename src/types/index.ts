@@ -30,6 +30,7 @@ export interface StockItem {
   remainingWeight: number;
   bhardana?: number;
   bhardanaRate?: number;
+  minusWeight?: number;
   receiptNumber: string;
   paidAmount: number;
   status: 'unpaid' | 'partial' | 'paid';
@@ -59,6 +60,7 @@ export interface Bill {
   profit: number;
   bhardana?: number;
   bhardanaRate?: number;
+  minusWeight?: number;
   paidAmount: number;
   status: 'unpaid' | 'partial' | 'paid';
   paymentType: 'cash' | 'credit';
@@ -113,6 +115,7 @@ export interface ProfitEntry {
   totalWeight: number;
   sellingAmount: number;
   purchaseCost: number;
+  weightGainProfit: number;
   profit: number;
   createdAt: string;
 }

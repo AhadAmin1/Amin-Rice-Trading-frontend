@@ -169,7 +169,7 @@ function CashEntriesTable({ entries }: { entries: CashEntry[] }) {
           <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase tracking-[0.3em] text-[10px]">No historical data found in treasury</TableCell></TableRow>
         ) : (
           entries.slice().reverse().map((entry) => (
-            <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors">
+            <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors cursor-pointer">
               <TableCell className="py-4 px-6 font-bold text-slate-900 tabular-nums text-xs">
                 {new Date(entry.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
               </TableCell>

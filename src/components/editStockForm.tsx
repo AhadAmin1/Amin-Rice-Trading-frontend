@@ -5,13 +5,7 @@ import type { StockItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type Props = {
   stock: StockItem;
@@ -41,18 +35,25 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
     receiptNumber: stock.receiptNumber || '',
     paymentType: (stock.paymentType || 'cash') as 'cash' | 'credit',
     dueDays: String(stock.dueDays || 30),
+    totalWeight: String(stock.totalWeight), 
+    minusWeight: String(stock.minusWeight || 0), 
   });
+
+  // Auto-calculate weight when katte or weightPerKatta changes
+  useEffect(() => {
+    if (formData.katte && formData.weightPerKatta) {
+      const grossWeight = Number(formData.katte) * Number(formData.weightPerKatta);
+      const deduction = Number(formData.katte) * (Number(formData.minusWeight) || 0);
+      const calculatedWeight = (grossWeight - deduction).toFixed(2);
+      setFormData(prev => ({ ...prev, totalWeight: calculatedWeight }));
+    }
+  }, [formData.katte, formData.weightPerKatta, formData.minusWeight]);
 
   const katte = Number(formData.katte) || 0;
   const weightPerKatta = Number(formData.weightPerKatta) || 0;
   const purchaseRate = Number(formData.purchaseRate) || 0;
   const bhardanaRate = Number(formData.bhardanaRate) || 0;
   const bhardana = katte * bhardanaRate;
-  const totalWeight = katte * weightPerKatta;
-  const rawAmount = formData.rateType === "per_kg"
-    ? totalWeight * purchaseRate
-    : katte * purchaseRate;
-  const totalAmount = rawAmount + bhardana;
 
   const formatCurrency = (amount: number) =>
     `RS ${new Intl.NumberFormat("en-PK", { maximumFractionDigits: 0 }).format(amount)}`;
@@ -68,6 +69,8 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       new Date(formData.date).getTime() + days * 24 * 60 * 60 * 1000
     ).toISOString().split('T')[0];
 
+    const totalWeightOverride = Number(formData.totalWeight) || (katte * weightPerKatta);
+
     const payload = {
       date: formData.date,
       millerId: miller.id,
@@ -75,12 +78,13 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
       itemName: formData.itemName,
       katte,
       weightPerKatta,
-      totalWeight,
+      totalWeight: totalWeightOverride,
       purchaseRate,
       bhardanaRate,
       bhardana,
+      minusWeight: Number(formData.minusWeight) || 0,
       rateType: formData.rateType,
-      totalAmount,
+      totalAmount: (formData.rateType === "per_kg" ? totalWeightOverride * purchaseRate : katte * purchaseRate) + bhardana,
       receiptNumber: formData.receiptNumber,
       paymentType: formData.paymentType,
       dueDays: days,
@@ -201,21 +205,33 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
         </div>
       </div>
 
-      {/* Row 5: Rate Type */}
-      <div className="space-y-2">
-        <Label className="text-xs font-black uppercase text-slate-500 ml-1">Rate Type</Label>
-        <Select
-          value={formData.rateType}
-          onValueChange={(v: "per_kg" | "per_katta") => setFormData({ ...formData, rateType: v })}
-        >
-          <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="rounded-2xl">
-            <SelectItem value="per_kg" className="rounded-xl my-1">Calculate Per KG</SelectItem>
-            <SelectItem value="per_katta" className="rounded-xl my-1">Calculate Per Katta</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Minus Weight (Per Bag)</Label>
+          <Input
+            type="number"
+            step="any"
+            placeholder="e.g. 0.7"
+            className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold text-rose-500"
+            value={formData.minusWeight}
+            onChange={e => setFormData({ ...formData, minusWeight: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-500 ml-1">Rate Type</Label>
+          <Select
+            value={formData.rateType}
+            onValueChange={(v: "per_kg" | "per_katta") => setFormData({ ...formData, rateType: v })}
+          >
+            <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-amber-500/20 focus:border-amber-500 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-2xl">
+              <SelectItem value="per_kg" className="rounded-xl my-1">Calculate Per KG</SelectItem>
+              <SelectItem value="per_katta" className="rounded-xl my-1">Calculate Per Katta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Row 6: Payment Type + Credit Days */}
@@ -257,18 +273,39 @@ export default function EditStockForm({ stock, onSuccess }: Props) {
           <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Transaction Summary</h5>
         </div>
         <div className="grid grid-cols-2 gap-y-3 text-sm">
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Weight</span>
-            <span className="text-base font-bold text-slate-900">{totalWeight.toFixed(2)} KG</span>
+          <div className="flex flex-col gap-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Weight</span>
+            <div className="flex items-baseline gap-1">
+              <input
+                type="number"
+                step="any"
+                value={formData.totalWeight}
+                onChange={e => setFormData({ ...formData, totalWeight: e.target.value })}
+                className="w-28 text-xl font-black text-slate-900 tracking-tighter leading-none bg-transparent border-b-2 border-dashed border-amber-400 focus:outline-none focus:border-amber-600 text-right"
+              />
+              <span className="text-xs font-bold text-slate-400">KG</span>
+            </div>
+            <span className="text-[8px] text-slate-300 font-medium">Tap to edit</span>
           </div>
-          <div className="flex flex-col items-end">
+          <div className="flex flex-col items-end gap-1">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Standard Weight</span>
+            <span className="text-xl font-black text-slate-900 tracking-tighter leading-none tabular-nums">
+              {(Number(formData.katte) * Number(formData.weightPerKatta)).toLocaleString()} KG
+            </span>
+          </div>
+
+          <div className="flex flex-col items-start mt-2">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bhardana</span>
             <span className="text-base font-bold text-slate-900">{formatCurrency(bhardana)}</span>
           </div>
           <div className="col-span-2 pt-3 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Net Payable:</span>
-              <span className="text-2xl font-bold text-slate-900">{formatCurrency(totalAmount)}</span>
+              <span className="text-2xl font-bold text-slate-900">
+                {formatCurrency(
+                  (formData.rateType === "per_kg" ? Number(formData.totalWeight) * purchaseRate : katte * purchaseRate) + bhardana
+                )}
+              </span>
             </div>
           </div>
         </div>
